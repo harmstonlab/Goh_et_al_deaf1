@@ -1,0 +1,26 @@
+# Mac files
+.DS_Store
+
+# Rproject user files
+*/*/.Rproj.user/*
+*/*/*/.Rproj.user/*
+*/*/*/libs/*
+*/*/*/*/libs/*
+
+# Large files
+*.gtf
+*.gz
+*.RDS
+*.fastq
+*.fq.gz
+*.bam
+*.bai
+
+
+# Specific folders
+sandbox/*
+*/*/data/02_aligned/00_fastqc/*
+*/*/data/02_aligned/01_STAR/*
+*/*/data/02_aligned/02_RSEM/*
+!*/*/data/02_aligned/02_RSEM/*.genes.results
+
