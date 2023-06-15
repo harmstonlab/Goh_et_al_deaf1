@@ -1,0 +1,249 @@
+---
+title: "compile_figure"
+format:
+  html: 
+    keep-md: true
+    embed-resources: true
+    df-print: kable
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    number-sections: true
+    smooth-scroll: true
+    code-tools: true
+    code-line-numbers: true
+  gfm: 
+    df-print: kable
+    toc: true 
+    toc-depth: 3
+    number-sections: true
+---
+
+# Intro
+
+In this notebook, we compile the supplemental figure for the paper. 
+
+## Setup
+
+
+```{r}
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(patchwork)
+})
+```
+
+
+## Read in files
+
+```{r}
+df_pdac <- read_csv("../gse133979_pdac/output/01_QC/pdac_deaf1_norm.csv")
+df_tscmko <- read_csv("../sarcoatlas_tscmko/output/01_QC/sarcoatlas_tscmko_deaf1_normcounts.csv")
+
+df_agingcrrm <- read_csv("../sarcoatlas_agingcrrm/output/01_QC/sarcoatlas_agingcrrm_deaf1_normcounts.csv")
+
+df_time <- read_csv("../sarcoatlas_timecourse_mouse/output/01_QC/sarcoatlas_timeseries_deaf1_normcounts.csv")
+
+```
+```{r}
+# global plot theme
+
+th <- theme_classic() +
+  theme(axis.title.y = element_text(face = "italic"),
+        legend.position = "none")
+```
+
+
+
+# Individual plots
+
+:::{.panel-tabset}
+
+## PDAC
+
+```{r}
+head(df_pdac)
+```
+
+Change ctrl to Control, cachexia to Cachexia:
+```{r}
+df_pdac$condition <- ifelse(df_pdac$condition == "ctrl", 
+                            "Ctrl", 
+                            "Cachexia")
+
+df_pdac$condition <- factor(df_pdac$condition, 
+                            levels = c("Ctrl", "Cachexia"))
+```
+
+
+```{r}
+ #| label: plot-a-pdac
+
+gse_lab <- "GSE133979"
+
+p1 <- ggplot(df_pdac, aes(x = condition, y = norm_counts,
+                          color = condition)) +
+  geom_boxplot() + 
+  geom_point() +
+  scale_y_continuous(limits = c(40, 160)) +
+  labs(
+    title = gse_lab,
+    y = "DEAF1 Expression") +
+  scale_color_brewer(palette = "Set1") +
+  th +
+  theme(axis.title.x = element_blank())
+
+p1
+```
+
+## TSCmKO
+
+```{r}
+df_tscmko <- df_tscmko %>% 
+  separate(sample_id, into = c("age", "condition", "rep"), 
+           remove = FALSE)
+
+df_tscmko$age <- ifelse(df_tscmko$age == "X3M", "3", "6")
+
+df_tscmko$condition <- ifelse(df_tscmko$condition == "CTRL", 
+                              "Control", "TSCmKO")
+
+head(df_tscmko)
+```
+
+
+```{r}
+#| label: plot-b-tscmko
+
+gse_lab <- "GSE139213"
+
+p2 <- ggplot(df_tscmko, aes(x = age, y = counts, color = age)) +
+  geom_boxplot() +
+  geom_point() +
+  scale_y_continuous(limits = c(100, 350)) +
+  scale_color_brewer(palette = "Set1") +
+  labs(
+    title = gse_lab, 
+    x = "Age (months)", 
+    y = "DEAF1 Expression") +
+  facet_wrap(~ condition) +
+  theme_classic() +
+  theme(legend.position = "none") + 
+  th
+
+p2
+```
+
+
+## Aging-crrm
+
+```{r}
+df_agingcrrm$age <- ifelse(df_agingcrrm$age == "X10m", "Young",
+                           "Old")
+
+df_agingcrrm$age <- factor(df_agingcrrm$age,
+                           levels = c("Young", "Old"))
+
+df_agingcrrm$muscle <- gsub("Sol", "SOL", df_agingcrrm$muscle)
+
+df_agingcrrm$muscle <- factor(df_agingcrrm$muscle, 
+                              levels = c("GAS", "TA", "SOL", "TRI"))
+
+head(df_agingcrrm)
+```
+
+
+```{r}
+#| label: plot-c-agingcrrm
+
+gse_lab <- "GSE139204"
+
+p3 <- ggplot(df_agingcrrm, aes(x = age, y = counts,
+                         color = age)) +
+  geom_boxplot() +
+  geom_point() +
+  scale_color_brewer(palette = "Set1") +
+  scale_y_continuous(limits = c(100, 250)) +
+  labs(
+    title = gse_lab,
+    y = "DEAF1 Expression") +
+  facet_wrap(~muscle, nrow = 1) +
+  th +
+  theme(axis.title.x = element_blank())
+
+p3
+```
+
+
+## Timecourse - mouse
+
+```{r}
+unique(df_time$age)
+```
+
+
+```{r}
+df_time$age <- as.factor(gsub("X|m", "", df_time$age))
+
+# arrange in correct order
+df_time$age <- factor(df_time$age, 
+                      levels = c("8", "18", "22", "24", 
+                                 "26", "28"))
+
+df_time
+```
+
+
+```{r}
+#| label: plot-d-time
+
+gse_lab <- "GSE145480"
+
+p4 <- ggplot(df_time, aes(x = age, y = norm_counts)) +
+  geom_boxplot() + 
+  geom_point() +
+  scale_y_continuous(limits = c(0, 400)) +
+  labs(
+    title = gse_lab,
+    x = "Age (months)", 
+    y = "DEAF1 Expression"
+  ) +
+  th
+
+p4
+```
+
+:::
+
+# Combined plot
+
+```{r}
+#| label: combined-plot
+
+layout <- "
+AACCCC
+BBDDDD
+"
+
+combined_plot <- p1 + p2 + p3 + p4 +
+  plot_layout(design = layout)
+
+combined_plot
+```
+
+
+
+```{r}
+ggsave(filename = "combined_plot.pdf", 
+       plot = combined_plot, device = "pdf", 
+       width = 20, height = 25,
+       units = "cm")
+```
+
+
+
+
+```{r}
+sessionInfo()
+```
+

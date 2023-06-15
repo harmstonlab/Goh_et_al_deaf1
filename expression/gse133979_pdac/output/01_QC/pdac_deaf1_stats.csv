@@ -1,0 +1,2 @@
+"","baseMean","log2FoldChange","lfcSE","stat","pvalue","padj","log2fc_info","pval_info"
+"ENSG00000177030",78.390347553796,-0.259641148511347,0.125072736902176,-2.07592121946145,0.0379012378223939,0.252715683840216,"log2 fold change (MLE): condition cachexia vs ctrl","Wald test p-value: condition cachexia vs ctrl"

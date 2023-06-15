@@ -24,3 +24,6 @@ sandbox/*
 */*/data/02_aligned/02_RSEM/*
 !*/*/data/02_aligned/02_RSEM/*.genes.results
 
+expression/compile_figure/compile_figure_files/*
+
+.Rproj.user

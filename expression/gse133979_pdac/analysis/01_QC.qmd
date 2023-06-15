@@ -1,0 +1,892 @@
+---
+title: 01_QC
+author: Qian Hui TAN
+date: '`r format(Sys.time(), "%d %B %Y")`'
+format:
+  html: 
+    keep-md: true
+    embed-resources: true
+    df-print: kable
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    number-sections: true
+    smooth-scroll: true
+    code-tools: true
+    code-line-numbers: true
+  gfm: 
+    df-print: kable
+    toc: true 
+    toc-depth: 3
+    number-sections: true
+---
+
+# 01_QC
+
+In this notebook, we perform quality control on our dataset. 
+
+
+```{r global_options, echo=FALSE}
+knitr::opts_chunk$set(fig.path='../figures/01_QC/',
+                      dev = c("png"))
+
+```
+
+# Setup
+
+```{r}
+## If output directory doesn't exist, create it
+if(!dir.exists("../output")){
+    dir.create("../output")
+  }
+  
+if(!dir.exists("../output/01_QC")){
+    dir.create("../output/01_QC")
+  }
+  
+output_dir <- "../output/01_QC/"
+  
+```
+
+
+```{r}
+suppressPackageStartupMessages({
+    library(dplyr)
+    library(readr)
+    library(tidyr)
+    library(ggplot2)
+    library(janitor)
+    library(GEOquery)
+    library(DESeq2)
+    library(reshape2) # melt function
+    library(biomaRt)
+    library(GenomicFeatures)
+    library(scales)
+    library(ggrepel)
+    library(pheatmap)
+    library(viridis)
+    library(lubridate)
+    library(DT)
+})
+
+source("../../scripts/R/functions.R")
+```
+
+
+
+```{r}
+# Generic theme
+th <- theme(
+         plot.title = element_text(size = 20),
+         plot.subtitle = element_text(size = 15),
+         axis.title.x = element_blank(),
+         axis.title.y = element_blank())
+
+# PCA theme
+pca_th <- theme(plot.title = element_text(size = 20),
+         axis.title.x = element_text(size = 15), 
+         axis.title.y = element_text(size = 15),
+         axis.text.x = element_text(size = 15),
+         axis.text.y = element_text(size = 15))
+```
+
+```{r}
+
+```
+
+
+We first create gene-level annotations:
+
+```
+### --- Get gene-level annotations (run once) --- ###
+
+hs.gtf.db <- GenomicFeatures::makeTxDbFromGFF("../../annotation/Homo_sapiens.GRCh38.109.chr.gtf.gz", format="gtf" )
+
+ensembl.genes = genes(hs.gtf.db)
+
+human = useEnsembl(biomart="ENSEMBL_MART_ENSEMBL", 
+                      dataset="hsapiens_gene_ensembl", mirror = "useast")
+bm.annotations = getBM(attributes = c("ensembl_gene_id", "entrezgene_id", 
+                                      "gene_biotype", "external_gene_name"), 
+                       mart = human, 
+                       filters = "ensembl_gene_id", 
+                       values = ensembl.genes$gene_id, uniqueRows=TRUE)
+ensembl.genes$gene_biotype = bm.annotations$gene_biotype[match(ensembl.genes$gene_id, bm.annotations$ensembl_gene_id) ]
+ensembl.genes$entrezgene_id = bm.annotations$entrezgene_id[match(ensembl.genes$gene_id, bm.annotations$ensembl_gene_id) ]
+ensembl.genes$external_gene_name = bm.annotations$external_gene_name[match(ensembl.genes$gene_id, bm.annotations$ensembl_gene_id) ]
+
+
+
+# save this as RDS so we don't have to keep running it
+saveRDS(bm.annotations, file = "../output/bm_annotations.RDS")
+saveRDS(ensembl.genes, file = "../output/ensembl.genes.RDS")
+saveRDS(ensembl.genes, file = "../../annotation/hg38_109_ensembl_genes.RDS")
+```
+
+```{r}
+ensembl.genes <- readRDS("../output/ensembl.genes.RDS")
+```
+
+# Preparing objects for DESeq
+
+We get the metadata from the SRA selector: 
+
+```{r}
+sra_md <- read.csv("../data/metadata/srr_metadata.txt") %>% 
+  janitor::clean_names()
+
+sra_md <- sra_md %>% 
+  dplyr::select(run, source_name, sex, diagnosis, geo_accession_exp, library_layout, platform)
+
+# Add cachexia and control
+sra_md$condition <- ifelse(sra_md$diagnosis == "Pancreatic ductal adenocarcinoma", 
+                                      "cachexia", "ctrl")
+
+sra_md$sex <- ifelse(sra_md$sex == "male", "m", "f")
+
+
+# Change GSE00001 to cachexia_m_1, number it according to group
+experimental_metadata <- sra_md %>% 
+  group_by(condition, sex) %>% 
+  arrange(condition, sex) %>% 
+  mutate(sample_no = 1:n()) %>% 
+  unite("sample_id", c(condition, sex, sample_no), 
+        sep = "_", remove = FALSE)
+
+head(experimental_metadata)
+```
+
+### Read in files
+```{r}
+bm.annotations <- readRDS("../output/bm_annotations.RDS")
+ensembl.genes <- readRDS("../output/ensembl.genes.RDS")
+
+human_muscle_md <- read_delim(file = "../data/metadata/human_muscle_geo_md.txt")
+```
+
+Fix sample order:
+```{r}
+# Specifying which group is the control group to make appropriate contrasts downstream
+experimental_metadata$condition <- factor(experimental_metadata$condition)
+experimental_metadata$condition <- relevel(experimental_metadata$condition, ref = "ctrl")
+
+experimental_metadata$sex = factor(experimental_metadata$sex)
+```
+
+
+## Creating the data matrix
+
+```{r loading data}
+# Create a matrix of the data (nrow can be obtained by calling wc -l *.genes.results in terminal; note -1 for header)
+data = matrix(0, ncol = length(experimental_metadata$run), 
+              nrow = 62656) 
+colnames(data) = experimental_metadata$run
+
+for (i in experimental_metadata$run){
+ data[ ,i] = read.table(paste("../data/02_aligned/02_RSEM/", i, ".genes.results",
+                              sep = ""),
+                         header = TRUE)$expected_count
+  row.names(data) = read.table(paste("../data/02_aligned/02_RSEM/", i, ".genes.results",sep=""), header=TRUE)$gene_id
+}
+
+
+# DESeq needs read counts to be integers
+data_mat = apply(round(data), c(1,2), as.integer)
+
+# Rename columns
+colnames(data_mat) <- experimental_metadata$sample_id[match(colnames(data_mat), experimental_metadata$run)]
+
+#head(data_mat)
+```
+
+```{r}
+data_mat_nonzero = data_mat[rowSums(data_mat) > 0, ] # Remove non-zero rows
+```
+
+## Checking the sex of organisms: 
+
+### Get XIST
+
+```{r}
+xist <- "ENSG00000229807"
+
+df_xist <- data_mat[xist, ] %>% melt()
+colnames(df_xist) <- c("xist_raw_counts")
+
+df_xist$sample_id = rownames(df_xist)
+
+head(df_xist)
+```
+
+### Get chrY genes
+
+```{r}
+chr_y <- ensembl.genes[seqnames(ensembl.genes) == "Y", ]
+y_genes <- chr_y$gene_id
+
+df_y <- colSums(data_mat[rownames(data_mat) %in% y_genes, ]) %>% 
+  melt(value.name = "chrY_sum")
+
+df_y$sample_id = rownames(df_y)
+
+head(df_y)
+```
+
+
+Plot them
+
+```{r}
+#| label: check-sex
+df_plot <- inner_join(df_xist, df_y)
+
+df_plot <- df_plot %>% 
+  separate(sample_id, into = c("condition", "sex", "rep"), 
+           remove = FALSE)
+
+ggplot(df_plot, aes(x = chrY_sum, y = xist_raw_counts,
+                    color = sex)) +
+  geom_point() +
+  expand_limits(x = 0, y = 0) +
+  labs(title = "Xist vs chrY") +
+  theme_classic()
+```
+Samples are labelled correctly - males have high chrY and low Xist, while females have high Xist and low chrY. 
+
+## Create DESeq object
+
+```{r}
+# Create DESeq object
+dds = DESeqDataSetFromMatrix(data_mat_nonzero, experimental_metadata, 
+                             ~ sex + condition)
+colnames(dds) = colnames(data_mat_nonzero)
+
+# Make ctrl the reference
+colData(dds)$condition <- factor(colData(dds)$condition)
+colData(dds)$condition <- relevel(colData(dds)$condition, ref = "ctrl")
+
+
+#Estimates the size factors using the "median ratio method" described by Equation 5 in Anders and Huber (2010)
+dds <- estimateSizeFactors(dds) 
+#This function obtains dispersion estimates for a count data set
+dds <- estimateDispersions(dds)
+
+# Removing lowly expressed genes, only to be done once at the start of the differential expression step
+filter = apply(counts(dds, normalized = TRUE), 1, function(x){ mean(x) >= 10 })
+dds = dds[filter, ]
+
+#This function transforms the count data to the log2 scale in a way which minimizes differences between samples for rows with small counts
+vst <- vst(dds, blind = TRUE) # use blind = TRUE for QC
+```
+
+## How many non-zero rows?
+
+How many genes are there in the human genome? 
+```{r}
+nrow(data_mat)
+```
+
+How many genes are expressed (at least 1 read in at least 1 sample)? 
+```{r}
+nrow(data_mat_nonzero)
+```
+
+What percentage is this? 
+
+```{r}
+nrow(data_mat_nonzero)/nrow(data_mat) * 100
+```
+
+36% of all rows are nonzero.
+
+
+# DESeq QC 
+
+## Dispersion estimates
+
+```{r}
+#| label: prefilt-disp-est
+## Plot dispersion estimates
+plotDispEsts(dds, main = "Dispersion estimates, before filtering")
+```
+
+## QC - number of detected genes
+
+Examining our dataset:
+
+```{r}
+dds
+```
+
+We plot a few key metrics to check our data quality: 
+
+```{r}
+plt_title = "Before Filtering"
+```
+
+::: {.panel-tabset}
+### Read counts per sample
+
+```{r}
+total_counts <- as.data.frame(colSums(counts(dds)))
+colnames(total_counts) <- "total_counts"
+total_counts$name = rownames(total_counts)
+```
+
+```{r}
+#| label: prefilt-qc-rcpersample
+# Plot
+ggplot(total_counts, aes(x = name, y = total_counts)) +
+    geom_bar(stat = "identity") +
+    scale_y_continuous("Read counts", 
+                       limits = c(0, 1e7),
+                       expand = c(0, 0),
+                       breaks = seq(0, 1e7, 1e6)) +
+    geom_hline(yintercept = 2.5e7, color = "blue", linetype = "dashed") +
+    labs(title = "Read counts per sample",
+         x = element_blank()) +
+    theme_minimal() +
+    coord_flip()
+```
+
+### Number of genes detected per sample
+
+```{r}
+#| label: prefilt-qc-ngenes
+
+detected = apply(counts(dds), 2, function(col) sum(col > 0 ))
+detected = as.data.frame(detected)
+detected$name = row.names(detected)
+                 
+ggplot(detected, aes(x=name, y=detected)) + 
+                 geom_bar(stat="identity") + 
+                 theme_minimal() + 
+                 coord_flip() + 
+                 scale_y_continuous("Number of Genes detected", expand=c(0,0),
+                                    limits = c(0, 15000)
+                                    ) + 
+                 scale_x_discrete("Sample") +
+                 labs(title = "# of genes detected", 
+                     subtitle = plt_title) +
+                 geom_hline(yintercept = 10000, color = "blue", linetype = "dashed") 
+```
+
+### Size factors
+
+```{r}
+#| label: prefilt-sf
+df = data.frame(sample_id = names(sizeFactors(dds)), 
+                sizeFactors = sizeFactors(dds))
+
+ggplot(df, aes(x = sample_id, y=sizeFactors)) + 
+    geom_bar(stat="identity") + 
+    scale_y_continuous(limits=c(0,2), expand=c(0,0)) + 
+    labs(title = "Size factors for each sample",
+         subtitle = plt_title, 
+         x = element_blank()) +
+    theme_minimal() + 
+    theme(axis.text.x = element_text(angle = 90, hjust=1, 
+                                     colour="black", size= 12))
+```
+
+### Normalized counts (boxplot)
+
+```{r}
+#| label: prefilt-qc-ncounts
+
+nc = counts(dds, normalized=TRUE)
+nc.melt = melt(nc)
+
+ggplot(nc.melt, aes(x=Var2, y=value)) + 
+    geom_boxplot() + 
+    theme_classic() + 
+    theme(axis.text.x = element_text(angle = 90, colour="black", hjust = 1,
+                                     size = 12)) + 
+    scale_x_discrete("Sample") + 
+    scale_y_continuous("Normalised counts") +
+    labs(title = "Normalized counts",
+        subtitle = plt_title)
+
+```
+
+```{r}
+nc.threshold = 2e5
+test = apply(nc, 1, function(x){ any(x > nc.threshold) })
+```
+
+The genes with normalized counts greater than `r nc.threshold` are:
+
+```{r}
+above_threshold <- as.data.frame(ensembl.genes[names(test[test])])
+
+above_threshold[ ,colnames(above_threshold) %in% 
+                   c("gene_id", "gene_biotype", "external_gene_name")]
+```
+
+These are all protein-coding genes. 
+
+Plotting the rRNA graph: 
+```{r}
+#| label: prefilt-qc-rrna
+
+rrna.genes = names(ensembl.genes[ensembl.genes$gene_biotype %in% c("Mt_rRNA", "rRNA")])
+percentage.of.rrna = (colSums(counts(dds[ rownames(counts(dds)) %in% rrna.genes])) / colSums(counts(dds))) * 100
+
+percentage.of.rrna = as.data.frame(percentage.of.rrna)
+percentage.of.rrna$name = row.names(percentage.of.rrna)
+#percentage.of.rrna$name = factor(percentage.of.rrna$name,rev(experimental_metadata$sample_id))
+ggplot(percentage.of.rrna, 
+       aes(x=name, y=percentage.of.rrna)) + 
+        geom_hline(yintercept = 5, color = "blue", linetype = "dashed") +
+        geom_bar(stat="identity") + 
+        theme_classic() + 
+        coord_flip() + 
+        scale_y_continuous("% rRNA", expand=c(0,0), limits = c(0, 30)) +
+        labs(title = "% rRNA") 
+```
+
+Checking summary statistics for rRNA: 
+```{r}
+summary(percentage.of.rrna$percentage.of.rrna)
+```
+
+There's a tiny amount of rRNA (< 0.02%). This is good - our samples don't show large amounts of rRNA present. 
+
+### Proportions of gene biotypes
+
+```{r}
+#| label: prefilt-qc-genebiotypes
+
+pc = ensembl.genes$gene_id[ensembl.genes$gene_biotype == "protein_coding"]
+pg = ensembl.genes$gene_id[ensembl.genes$gene_biotype %in% unique(ensembl.genes$gene_biotype)[grep("pseudogene", unique(ensembl.genes$gene_biotype))]]
+lc = ensembl.genes$gene_id[ensembl.genes$gene_biotype == "lincRNA"]
+
+totalcounts.pc = colSums(counts(dds)[rownames(counts(dds)) %in% pc,])
+totalcounts.pg = colSums(counts(dds)[rownames(counts(dds)) %in% pg,])
+totalcounts.lc = colSums(counts(dds)[rownames(counts(dds)) %in% lc,])
+
+totalcounts.other = colSums(counts(dds)[!(rownames(counts(dds)) %in% c(lc,pc,pg)),])
+
+counts.by.biotype = data.frame(name = names(totalcounts.pc),
+                         protein_coding = totalcounts.pc,
+                         pseudogene = totalcounts.pg,
+                         lincRNA = totalcounts.lc,
+                         other = totalcounts.other
+                         
+                         )
+
+#counts.by.biotype$name = factor(counts.by.biotype$name, experimental_metadata$sample_id)
+
+counts.by.biotype = as.data.frame(t(apply(counts.by.biotype[,2:5], 1, function(x){ 100 * (x / sum(x)) }) ))
+counts.by.biotype$name = names(totalcounts.pc)
+#counts.by.biotype$name = factor(counts.by.biotype$name, #experimental_metadata$sample_id)
+
+counts.by.biotype.melt = melt(counts.by.biotype)
+
+
+ggplot(counts.by.biotype.melt, aes(x=name, y=value, fill=variable)) +  
+    geom_bar(stat="identity") + 
+    theme_classic() + 
+    scale_y_continuous("% reads", labels = dollar_format(suffix = "%", prefix = ""),  
+                       expand=c(0,0)) + scale_x_discrete("Sample") + 
+    theme(axis.text.x = element_text(angle = 90, colour="black", #family="Arial", 
+                                     hjust = 1, size=12)) +
+    labs(title = "Proportions of gene biotypes", 
+        subtitle = plt_title) 
+```
+
+Most genes are protein-coding, as expected.
+:::
+
+Read counts are rather low. 
+
+## QC - clustering
+
+We perform 3 types of Quality Control to assess our DESeq dataset:
+
+-   Correlation matrix heatmap
+-   Hierarchical clustering
+-   PCA
+
+::: {.panel-tabset}
+### Correlation matrix heatmap
+
+```{r}
+#| label: prefilt-heatmap
+#| fig-height: 12
+#| fig-width: 12
+
+### Extract the vst matrix from the object
+vst_mat <- assay(vst)  
+### Compute pairwise correlation values
+vst_cor <- cor(vst_mat)
+### Plot heatmap
+pheatmap(vst_cor, main = "Correlation heatmap, before filtering")
+
+```
+
+
+### Hierarchical clustering
+
+```{r}
+#| label: prefilt-hclust
+
+sampleDists <- dist(t(assay(vst)))
+plot(hclust(sampleDists), main = paste0("Cluster Dendrogram, ", plt_title))
+```
+
+### PCA
+
+```{r}
+#| label: prefilt-pca-bycondition
+make_pca(vst, intgroup = "condition",
+         title = "PCA, before filtering")
+```
+
+### PCA, labelled
+```{r}
+#| label: prefilt-pca-all-label
+
+make_pca(vst, intgroup = "condition", label = TRUE,
+         title = "PCA, before filtering")
+```
+
+
+### PCA, by sex
+```{r}
+#| label: prefilt-pca-sex
+make_pca(vst, intgroup = "sex",
+         title = "PCA plot, before filtering") +
+  scale_color_brewer(palette = "Set1")
+```
+
+PC1 separates by sex. 
+
+### PCA, by size factor
+```{r}
+#| label: prefilt-pca-all-sf
+#| message: false
+
+make_pca(vst, intgroup = "sizeFactor",
+         title = "PCA plot, before filtering") +
+  scale_color_viridis(option = "A")
+```
+:::
+
+# Remove rRNA and mitochondrial genome
+
+We remove all genes that map to rRNA, as well as the mitochondrial chromosome before we proceed with downstream analysis. 
+
+```{r}
+plt_title = "after removing rRNA and mitochondrial genome"
+```
+
+Checking MT chromosome intact: 
+
+```{r}
+in_dds = ensembl.genes[na.omit(match(rownames(counts(dds)), ensembl.genes$gene_id)), ]
+table(seqnames(in_dds))
+```
+
+Remove MT chromosome, rerun DESeq: 
+```{r}
+# Remove mitochondrial genome
+mit_genes <- ensembl.genes[seqnames(ensembl.genes) %in% "chrM", ]$gene_id
+dds_rm_mit <- dds[!rownames(counts(dds)) %in% mit_genes, ]
+
+# Remove rRNA
+dds_filt = dds_rm_mit[!(row.names(counts(dds_rm_mit)) %in% 
+                   ensembl.genes$gene_id[ensembl.genes$gene_biotype %in% 
+                                           c("rRNA", "snoRNA", "snRNA", "Mt_rRNA")]), ]
+dds_filt = dds_filt[rowSums(counts(dds_filt)) > 0, ]
+
+# Re-estimate dispersions
+dds_filt <- estimateSizeFactors(dds_filt) 
+dds_filt <- estimateDispersions(dds_filt)
+vst_filt <- vst(dds, blind = TRUE) # use blind = TRUE for QC
+```
+Check that mitochondrial genome has been removed: 
+
+```{r}
+in_dds = ensembl.genes[na.omit(match(rownames(counts(dds_filt)), ensembl.genes$gene_id)), ]
+table(seqnames(in_dds))
+```
+
+## Check rRNA removed
+
+```{r}
+#| label: rmrna-qc-rrna-percent-rrna
+rrna.genes = names(ensembl.genes[ensembl.genes$gene_biotype %in% c("Mt_rRNA", "rRNA", 
+                                                                   "snoRNA", "snRNA")])
+
+percentage.of.rrna = (colSums(counts(dds_filt[rownames(counts(dds_filt)) %in% rrna.genes])) / colSums(counts(dds_filt))) * 100
+percentage.of.rrna = as.data.frame(percentage.of.rrna)
+percentage.of.rrna$name = row.names(percentage.of.rrna)
+#percentage.of.rrna$name = factor(percentage.of.rrna$name, rev(experimental_metadata$sample_id))
+
+
+ggplot(percentage.of.rrna, aes(x=name, y=percentage.of.rrna)) +
+  geom_bar(stat="identity") + theme_classic() + coord_flip() + scale_y_continuous("% rRNA", expand=c(0,0)) +
+  scale_x_discrete("Sample") +
+  ggtitle(paste0("% rRNA, ", plt_title))
+```
+
+Checking that rRNA percentage is now zero: 
+```{r}
+summary(percentage.of.rrna$percentage.of.rrna)
+```
+
+## QC - number of genes
+
+::: {.panel-tabset}
+### Size Factors after rRNA removal
+
+```{r}
+#| label: rmrna-sf
+
+df = data.frame(sample_id = names(sizeFactors(dds_filt)), sizeFactors = sizeFactors(dds_filt))
+
+ggplot(df, aes(x = sample_id, y=sizeFactors)) + 
+  geom_bar(stat="identity") + 
+  scale_y_continuous(limits=c(0,2), expand=c(0,0)) + 
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle = 90, hjust=1, colour="black", size=12)) +
+  geom_hline(yintercept = 1, color = "blue", linetype = "dashed") +
+  ggtitle(paste0("Size Factors, ", plt_title))
+```
+
+Summary of size factors: 
+```{r}
+summary(sizeFactors(dds_filt))
+```
+
+Size factors for each sample: 
+```{r}
+print(sizeFactors(dds_filt))
+```
+
+
+### Read counts per sample after rRNA and chrM removal
+```{r}
+total_counts <- as.data.frame(colSums(counts(dds_filt)))
+colnames(total_counts) <- "total_counts"
+total_counts$name = rownames(total_counts)
+
+```
+
+
+```{r}
+#| label: rmrna-qc-filt-rcpersample
+# Plot
+ggplot(total_counts, aes(x = name, y = total_counts)) +
+    geom_bar(stat = "identity") +
+    scale_y_continuous("Read counts", 
+                       limits = c(0, 1e7),
+                       expand = c(0, 0),
+                       breaks = seq(0, 1e7, 1e6)) +
+    geom_hline(yintercept = 2.5e7, color = "blue", linetype = "dashed") +
+    labs(title = "Read counts per sample",
+         subtitle = "after removing chrM and rRNA",
+         x = element_blank()) +
+    theme_minimal() +
+    coord_flip()
+```
+
+### Number of genes detected per sample after rRNA and chrM removal
+```{r}
+#| label: rmrna-qc-filt-ngenes
+
+detected = apply(counts(dds_filt), 2, function(col) sum(col > 0 ))
+detected = as.data.frame(detected)
+detected$name = row.names(detected)
+#detected$name = factor(detected$name, rev(experimental_metadata$sample_id))
+                 
+ggplot(detected, aes(x=name, y=detected)) + 
+                 geom_bar(stat="identity") + 
+                 theme_minimal() + 
+                 coord_flip() + 
+                 scale_y_continuous("Number of Genes detected", expand=c(0,0),
+                                    limits = c(0, 30000)) + 
+                 scale_x_discrete("Sample") +
+                 labs(title = "# of genes detected", 
+                     subtitle = plt_title) +
+                 geom_hline(yintercept = 20000, color = "blue", linetype = "dashed") 
+```
+:::
+
+## QC- clustering
+
+::: {.panel-tabset}
+### Heatmap after rRNA removal
+
+```{r}
+#| label: rmrna-rrna-heatmap
+#| fig-height: 12
+#| fig-width: 12
+
+### Extract the vst matrix from the object
+vst_mat <- assay(vst_filt)  
+
+### Compute pairwise correlation values
+vst_cor <- cor(vst_mat)
+
+### Plot heatmap
+pheatmap(vst_cor, main = "Correlation heatmap, after rRNA removal")
+```
+
+### Clustering after rRNA removal
+
+```{r}
+#| label: rmrna-clustering-filt
+
+sampleDists <- dist(t(assay(vst_filt)))
+plot(hclust(sampleDists), main = paste0("Cluster Dendrogram, ", plt_title))
+```
+
+### PCA after rRNA removal
+
+
+```{r}
+#| label: rmrna-pca-filt-condition
+make_pca(vst_filt, intgroup = "condition",
+         title = "PCA plot, after removing rRNA and chrM") 
+```
+
+### PCA, labelled
+
+```{r}
+#| label: rmrna-pca-filt-condition-labelled
+
+make_pca(vst_filt, intgroup = "condition", label = TRUE, 
+         title = "PCA plot, after removing rRNA and chrM") 
+```
+
+### PCA, by sex
+```{r}
+#| label: rmrna-pca-filt-sex
+make_pca(vst_filt, intgroup = "sex",
+         title = "PCA plot, after removing rRNA and chrM") +
+  scale_color_brewer(palette = "Set1")
+```
+
+Wow. PC1 separates by sex. 
+
+### PCA, by size factor
+
+```{r}
+#| label: rmrna-pca-filt-sf
+
+make_pca(vst_filt, intgroup = "sizeFactor", 
+         title = "PCA plot, after removing rRNA and chrM") +
+  scale_color_viridis(option = "A")
+
+```
+:::
+
+
+# Check Deaf1 levels
+
+```{r}
+# Check that design is sex + condition
+design(dds_filt)
+```
+
+
+## Normalized counts
+We plot the normalized counts of deaf1 in each sample:
+
+```{r}
+deaf1_gene <- "ENSG00000177030"
+
+# The normalized counts
+deaf1_norm <- as.data.frame(counts(dds_filt, normalized = TRUE)[deaf1_gene, ])
+
+deaf1_norm$sample <- rownames(deaf1_norm)
+colnames(deaf1_norm) <- c("norm_counts", "sample")
+
+deaf1_norm <- deaf1_norm %>% 
+  separate(sample, 
+           into = c("condition", "sex", "sample_no"),
+           remove = FALSE)
+head(deaf1_norm)
+```
+
+
+```{r}
+# save this
+write.csv(deaf1_norm, file = paste0(output_dir, "pdac_deaf1_norm.csv"))
+```
+
+
+```{r}
+#| label: deaf1-norm
+ggplot(deaf1_norm, aes(x = sample, y = norm_counts)) +
+  geom_col() +
+  labs(title = "Deaf1 counts, normalized") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90)) 
+```
+
+## Boxplot - by condition
+
+```{r}
+#| label: deaf1-box
+
+dat <- deaf1_norm 
+
+ggplot(dat, aes(x = condition, y = norm_counts)) +
+  geom_boxplot() +
+  geom_point() +
+  theme_classic() + 
+  labs(title = "Deaf1 counts, normalized")
+```
+
+### Wald test
+
+```{r}
+dds_wald <- dds_filt
+design(dds_wald) <- ~ condition + sex
+
+dds_wald <- DESeq(dds_wald, parallel = TRUE)
+dds_wald <- nbinomWaldTest(dds_wald)
+
+resultsNames(dds_wald)
+res <- results(dds_wald, name = "condition_cachexia_vs_ctrl")
+```
+
+```{r}
+deaf1_res <- res[deaf1_gene, ]
+
+deaf1_res
+```
+```{r}
+#save this
+deaf1_res_export <- as.data.frame(deaf1_res)
+
+# Add log2fc and pvalue info
+deaf1_res_export$log2fc_info <- deaf1_res@elementMetadata@listData$description[2]
+
+deaf1_res_export$pval_info <- deaf1_res@elementMetadata@listData$description[5]
+
+deaf1_res_export
+
+write.csv(deaf1_res_export, file = paste0(output_dir, "pdac_deaf1_stats.csv"))
+```
+:::
+
+
+# Save outputs
+
+```{r}
+saveRDS(dds_filt, file = paste0(output_dir, "dds_filt.RDS"))
+```
+
+
+# Summary
+
+- Deaf1 decreases significantly. 
+
+# Sessioninfo
+
+```{r}
+sessionInfo()
+```

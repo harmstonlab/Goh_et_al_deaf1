@@ -1,0 +1,3 @@
+"","gene_name","baseMean","log2FoldChange","lfcSE","stat","pvalue","padj","log2fc_info","pval_info"
+"1","ENSMUSG00000058886",219.430970826332,-0.110114111516516,0.117627284912875,-0.936127290518318,0.349207653450948,0.704584457406312,"log2 fold change (MLE): age_condition X9M_CTRL vs X3M_CTRL","Wald test p-value: age condition X9M CTRL vs X3M CTRL"
+"2","ENSMUSG00000058886",219.430970826332,-0.37488665308786,0.119172153101947,-3.14575715324335,0.00165657493240579,0.0101845593720239,"log2 fold change (MLE): age_condition X9M_TSCmKO vs X3M_TSCmKO","Wald test p-value: age condition X9M TSCmKO vs X3M TSCmKO"
