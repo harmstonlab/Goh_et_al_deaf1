@@ -1,0 +1,2 @@
+"","baseMean","log2FoldChange","lfcSE","stat","pvalue","padj","gene_biotype","external_gene_name"
+"ENSG00000120833",76.2294242521101,0.982098675442989,0.193117492841678,5.08549826839424,3.66662177413445e-07,0.00681258325634181,"protein_coding","SOCS2"

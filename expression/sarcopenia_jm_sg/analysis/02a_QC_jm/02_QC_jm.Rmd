@@ -1,0 +1,784 @@
+---
+title: "Quality Control"
+format: gfm
+jupyter: R
+---
+
+```{r setup, include=FALSE}
+#knitr::opts_chunk$set(echo = TRUE)
+```
+
+# QC_jm
+
+In this notebook, we perform QC for the Jamaican population only. Samples: sarcopenia vs healthy controls. 
+
+```{r}
+suppressPackageStartupMessages({
+    library(DESeq2)
+    library(ggrepel)
+    library(genefilter)
+    library(GenomicFeatures)
+    library(biomaRt)
+    library(reshape2)
+    library(scales)
+    library(Biostrings)
+    library(tidyverse)
+    library(janitor)
+    library(DT)
+    library(pheatmap)
+    library(clusterProfiler)
+    library("org.Hs.eg.db")
+    library(GEOquery)
+    library(limma)
+    library(sva)
+})
+
+```
+
+```{r cache=TRUE}
+### --- Get gene-level annotations (run once) --- ###
+
+#hs.gtf.db <- makeTxDbFromGFF("../../data/annotation/Homo_sapiens.GRCh38.94.chr.gtf", 
+#                             format="gtf" )
+
+#ensembl.genes = genes(hs.gtf.db)
+#human = useEnsembl(biomart="ENSEMBL_MART_ENSEMBL", 
+#                      dataset="hsapiens_gene_ensembl", mirror = "useast")
+#bm.annotations = getBM(attributes=c("ensembl_gene_id", "entrezgene_id", "gene_biotype", "external_gene_name"), 
+#                       mart=human, 
+#                       filters="ensembl_gene_id", 
+#                       values=ensembl.genes$gene_id, uniqueRows=TRUE)
+#ensembl.genes$gene_biotype = bm.annotations$gene_biotype[match(ensembl.genes$gene_id, bm.annotations$ensembl_gene_id) ]
+#ensembl.genes$entrezgene_id = bm.annotations$entrezgene_id[match(ensembl.genes$gene_id, bm.annotations$ensembl_gene_id) ]
+#ensembl.genes$external_gene_name = bm.annotations$external_gene_name[match(ensembl.genes$gene_id, bm.annotations$ensembl_gene_id) ]
+
+# save this as RDS so we don't have to keep running it
+#saveRDS(bm.annotations, file = "../../output/bm_annotations.RDS")
+#saveRDS(ensembl.genes, file = "../../output/ensembl.genes.RDS")
+```
+
+```{r}
+### -- Get metadata (run once) --- ###  
+
+#Get series matrix files that contain the metadata
+#jm_geo <- GEOquery::getGEO(filename = "../../data/metadata/GSE111016_series_matrix.txt")
+#jm_geo <- GEOquery::getGEO(filename = "../../data/metadata/GSE111010_series_matrix.txt")
+
+# Extract the metadata
+#jm_geo_md <- pData(phenoData(jm_geo)) %>% clean_names()
+#jm_geo_md <- pData(phenoData(jm_geo)) %>% clean_names()
+
+#write_delim(jm_geo_md, file = "../../data/metadata/jm_geo_md.txt")
+#write_delim(jm_geo_md, file = "../../data/metadata/jm_geo_md.txt")
+```
+
+## Read in files
+
+```{r}
+bm.annotations <- readRDS("../output/bm_annotations.RDS")
+ensembl.genes <- readRDS("../output/ensembl.genes.RDS")
+
+jm_geo_md <- read_delim(file = "../../data/metadata/jm_geo_md.txt")
+```
+
+```{r}
+### --- Clean and combine metadata --- ### 
+
+# Subset columns of interest
+jm_md <- jm_geo_md %>% 
+    dplyr::select(title, sex_ch1, age_yr_ch1, low_muscle_mass_ch1, 
+                  low_muscle_strength_and_or_low_physical_performance_ch1, 
+                  population_ch1, sarcopenia_status_ch1, tissue_ch1) %>% 
+    # rename stuff 
+    rename(sample_id = title,
+          low_strength_performance = low_muscle_strength_and_or_low_physical_performance_ch1)
+colnames(jm_md) <- gsub("_ch1", "", colnames(jm_md))
+
+# Change Sample 1 [sss] to sample_1j
+jm_md$sample_id <- gsub(" \\[jss]", "", jm_md$sample_id)
+jm_md$sample_id <- gsub(" ", "_", jm_md$sample_id)
+jm_md$sample_id <- gsub("Sample", "jm_sample", jm_md$sample_id)
+jm_md$country <- "jm"
+
+# Combine the jamaica and jm metadata
+metadata <- jm_md
+# get sarco and control
+metadata$condition = ifelse(metadata$sarcopenia_status == "yes", "sarco", "ctrl")
+# Change jm_sample_1 to jm_sarco_1, number it according to group
+metadata <- metadata %>% 
+    group_by(sarcopenia_status, country) %>% 
+    mutate(sample_no = 1:n()) %>% 
+    arrange(condition) %>% 
+    unite("sample_id_new", country:sample_no, sep = "_", remove = FALSE)
+
+metadata$country <- as.factor(metadata$country)
+metadata$condition <- factor(metadata$condition, levels = c("ctrl", "sarco"))
+
+dim(metadata)
+head(metadata)
+```
+
+```{r}
+table(metadata$sarcopenia_status, metadata$low_muscle_mass)
+```
+
+```{r}
+### --- Create data matrix --- ###
+
+jm <- read.csv(
+    file = "../../data/data_raw/GSE111010_allSamplesCounts_htseqcov1_jss_forGEO.csv") %>% 
+    janitor::clean_names()
+# Add gene names to rownames
+rownames(jm) <- jm$x
+# Remove the x column (ensembl gene id)
+jm <- jm[ ,!colnames(jm) == "x"]
+# Add prefix, rename colnames
+colnames(jm) <- paste0("jm_", colnames(jm))
+colnames(jm) <- metadata$sample_id_new[match(colnames(jm), metadata$sample_id)]
+jm$ensembl_gene_id = rownames(jm)
+
+# Join the counts matrix, remove ensembl_gene_id column
+counts <- jm  %>% 
+            dplyr::select("ensembl_gene_id", metadata$sample_id_new)
+counts[is.na(counts)] <- 0
+remove = "ensembl_gene_id"
+data_mat = as.matrix(counts[, !colnames(counts) %in% remove])
+rownames(data_mat) = counts$ensembl_gene_id
+
+# Keep only rows that start with ENSG (remove the __nofeature rows)
+#data_mat <- data_mat[rownames(data_mat)[grep("^ENSG", rownames(data_mat))], ]
+data_mat = apply(round(data_mat), c(1,2), as.integer) # Round to integer
+data_mat_nonzero = data_mat[rowSums(data_mat) > 0, ] # Rm non-zero rows
+
+
+sum(duplicated(rownames(data_mat_nonzero)))# Check that we have no duplicates
+```
+
+```{r}
+# Check that all rows start with ENSG; that is, no rows do not start with ENSG:
+data_mat[rownames(data_mat)[grep("^ENSG", rownames(data_mat), invert = TRUE)], ]
+```
+
+```{r}
+# Keep only rows that start with ENSG (remove the __nofeature rows)
+data_mat <- data_mat[rownames(data_mat)[grep("^ENSG", rownames(data_mat))], ]
+data_mat = apply(round(data_mat), c(1,2), as.integer) # Round to integer
+data_mat_nonzero = data_mat[rowSums(data_mat) > 0, ] # Rm non-zero rows
+```
+
+```{r}
+nrow(data_mat)
+```
+
+```{r}
+nrow(data_mat_nonzero)
+```
+
+```{r}
+nrow(data_mat_nonzero)/nrow(data_mat) * 100
+```
+
+```{r}
+#Creates the DESeq2 object
+# Run it first without controlling for age
+dds = DESeqDataSetFromMatrix(data_mat_nonzero, metadata, 
+                             ~ condition)
+colnames(dds) = colnames(data_mat)
+
+#Estimates the size factors using the "median ratio method" described by Equation 5 in Anders and Huber (2010)
+dds <- estimateSizeFactors(dds) 
+
+#This function obtains dispersion estimates for a count data set
+dds <- estimateDispersions(dds)
+
+#This function transforms the count data to the log2 scale in a way which minimizes differences between samples for rows with small counts
+rld <- vst(dds)
+```
+
+## Global theme options
+
+```{r}
+# Generic theme
+th <- theme(axis.text.x = element_text(size = 15),
+          axis.text.y = element_text(size = 15),
+         plot.title = element_text(size = 20),
+         plot.subtitle = element_text(size = 15),
+         axis.title.x = element_blank(),
+         axis.title.y = element_blank())
+```
+
+```{r}
+# pca theme
+pca_th <- theme(plot.title = element_text(size = 20),
+         axis.title.x = element_text(size = 15), 
+         axis.title.y = element_text(size = 15),
+         axis.text.x = element_text(size = 15),
+         axis.text.y = element_text(size = 15))
+```
+
+## Analysis
+
+
+### Sample clustering
+```{r hclust}
+options(repr.plot.height = 8, repr.plot.width = 18)
+
+sampleDists <- dist(t(assay(rld)))
+plot(hclust(sampleDists), main = "Cluster Dendrogram, before rRNA removal")
+```
+
+### PCA
+```{r pca_samples}
+ntop = 500
+rv <- rowVars(assay(rld))
+select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
+pca = prcomp(t(assay(rld)[select,]))
+percentVar <- pca$sdev^2/sum(pca$sdev^2)
+
+set.seed(1)
+pca_data <- plotPCA(rld, 
+                    intgroup = c("condition", "low_muscle_mass", 
+                                 "low_strength_performance", "age_yr"), 
+                    returnData=TRUE)
+percentVar <- round(100 * attr(pca_data, "percentVar"), digits=2)
+```
+
+
+```{r}
+options(repr.plot.height = 8, repr.plot.width = 12)
+
+ggplot(pca_data, aes(PC1, PC2, color=condition, shape = low_muscle_mass)) + geom_point(size=5) +
+  scale_x_continuous(paste0("PC1: ",percentVar[1],"% variance"),
+                    limits = c(-40, 40)) +
+  scale_y_continuous(paste0("PC2: ",percentVar[2],"% variance"),
+                    limits = c(-25, 25)) + 
+  coord_fixed() + 
+  theme_classic() + 
+    scale_color_brewer(palette = "Set1") +
+  #geom_text_repel(data = pca_data, aes(PC1,PC2, label = name), 
+  #                hjust = 1.2, box.padding = 0.5, size = 5.5) +
+  expand_limits(x = c(-50, 50), y = c(-30, 30)) +
+  labs(title = "PCA, before rRNA removal") +
+  pca_th
+```
+
+```{r}
+options(repr.plot.height = 8, repr.plot.width = 12)
+
+ggplot(pca_data, aes(PC1, PC2, color=condition, shape = low_strength_performance)) + 
+  geom_point(size=5) +
+  scale_color_brewer(palette = "Set1") +
+  scale_x_continuous(paste0("PC1: ",percentVar[1],"% variance"),
+                    limits = c(-40, 40)) +
+  scale_y_continuous(paste0("PC2: ",percentVar[2],"% variance"),
+                    limits = c(-25, 25)) + 
+  coord_fixed() + 
+  theme_classic() + 
+  #geom_text_repel(data = pca_data, aes(PC1,PC2, label = name), 
+  #                hjust = 1.2, box.padding = 0.5, size = 5.5) +
+  expand_limits(x = c(-50, 50), y = c(-30, 30)) +
+  labs(title = "PCA, before rRNA removal") +
+  pca_th
+```
+
+```{r}
+options(repr.plot.height = 8, repr.plot.width = 12)
+
+ggplot(pca_data, aes(PC1, PC2, color=age_yr)) + 
+  geom_point(size=5) +
+  scale_x_continuous(paste0("PC1: ",percentVar[1],"% variance"),
+                    limits = c(-40, 40)) +
+  scale_y_continuous(paste0("PC2: ",percentVar[2],"% variance"),
+                    limits = c(-25, 25)) + 
+  coord_fixed() + 
+  theme_classic() + 
+  #geom_text_repel(data = pca_data, aes(PC1,PC2, label = name), 
+  #                hjust = 1.2, box.padding = 0.5, size = 5.5) +
+  expand_limits(x = c(-50, 50), y = c(-30, 30)) +
+  labs(title = "PCA, before rRNA removal") +
+  pca_th
+```
+
+PC1 does not separate by condition, low_muscle_mass, low_strength_performance or age_year. 
+
+
+### Number of genes detected
+```{r number_of_genes}
+options(repr.plot.height = 18, repr.plot.width = 10)
+
+detected = apply(counts(dds), 2, function(col) sum(col > 0 ))
+detected = as.data.frame(detected)
+detected$name = row.names(detected)
+detected$name = factor(detected$name, rev(metadata$sample_id_new))
+                 
+ggplot(detected, aes(x=name, y=detected)) + 
+                 geom_bar(stat="identity") + 
+                 theme_classic() + 
+                 coord_flip() + 
+                 scale_y_continuous("Number of Genes detected", expand=c(0,0)) + 
+                 scale_x_discrete("Sample") +
+                 labs(title = "# of genes detected", 
+                     subtitle = "Before rRNA removal") +
+                 th
+```
+
+### Normalised counts (boxplot)
+```{r}
+options(repr.plot.height = 8, repr.plot.width = 10)
+
+nc = counts(dds, normalized=TRUE)
+nc.melt = melt(nc)
+
+ggplot(nc.melt, aes(x=Var2, y=value)) + 
+    geom_boxplot() + 
+    theme_classic() + 
+    theme(axis.text.x = element_text(angle = 90, colour="black", hjust = 1)) + 
+    scale_x_discrete("Sample") + 
+    scale_y_continuous("Normalised counts") +
+    labs(title = "Normalized counts",
+        subtitle = "Before rRNA removal") +
+    th
+```
+
+```{r}
+nc.threshold = 1e6
+test = apply(nc, 1, function(x){ any(x > nc.threshold) })
+
+as.data.frame(ensembl.genes[names(test[test])])
+ 
+#as.data.frame(ensembl.genes[names(test[test])]) %>%
+#  kable %>% kable_styling("striped", full_width = F) %>% scroll_box(width = "800px", height = "500px")
+```
+
+These are all protein-coding genes involved in muscle. 
+
+### Normalised counts (Transcripts per million (TPM))
+```{r}
+#options(repr.plot.height = 8, repr.plot.width = 10)
+
+#effective_lengths = matrix(0, ncol=length(experimental_metadata$sample_id), nrow=17714)
+#colnames(effective_lengths)= experimental_metadata$sample_id
+#for( i in experimental_metadata$sample_id){
+#  effective_lengths[,i] = read.table(paste("../data/aligned_data/", i, ".genes.results",sep=""), sep="\t", header=TRUE)$effective_length
+#}
+#row.names(effective_lengths) = read.table(paste("../data/aligned_data/", i, ".genes.results",sep=""), sep="\t", header=TRUE)$gene_id
+
+#effective_lengths = rowMeans(effective_lengths[row.names(counts(dds)),])
+#ncrpk = counts(dds) / (effective_lengths / 1000)
+#ncrpk = apply(ncrpk, c(1,2), function(x){if(is.nan(x)){0}else{x}})
+#ncrpk = apply(ncrpk, c(1,2), function(x){if(is.infinite(x)){0}else{x}})
+#ncscalingfactor = colSums(ncrpk) / 1e6
+#nctpm = sweep(ncrpk, 2, ncscalingfactor, "/")
+
+#nctpm.melt = melt(nctpm)
+#ggplot(nctpm.melt, aes(x=Var2, y=value)) + 
+#    geom_boxplot() + 
+#    theme_classic() + 
+#    theme(axis.text.x = element_text(angle = 90, colour="black", hjust = 1)) + 
+#    labs(title = "Normalized counts (TPM)", 
+#        subtitle = "Before rRNA removal") +
+#    th
+```
+
+```{r}
+#tpm.threshold = 20000
+#test.tpm = apply(nctpm, 1, function(x){ any(x> tpm.threshold) })
+
+#as.data.frame(ensembl.genes[names(test.tpm[test.tpm])]) #%>%
+  #kable %>% kable_styling("striped", full_width = F) %>% scroll_box(width = "800px", height = "500px")
+```
+
+### rRNA percentage
+```{r percentage-rRNA}
+options(repr.plot.height = 18, repr.plot.width = 8)
+
+rrna.genes = names(ensembl.genes[ensembl.genes$gene_biotype %in% c("Mt_rRNA", "rRNA")])
+percentage.of.rrna = (colSums(counts(dds[ rownames(counts(dds)) %in% rrna.genes])) / colSums(counts(dds))) * 100
+
+percentage.of.rrna = as.data.frame(percentage.of.rrna)
+percentage.of.rrna$name = row.names(percentage.of.rrna)
+percentage.of.rrna$name = factor(percentage.of.rrna$name,rev(metadata$sample_id_new))
+ggplot(percentage.of.rrna, 
+       aes(x=name, y=percentage.of.rrna)) + 
+        geom_bar(stat="identity") + 
+        theme_classic() + 
+        coord_flip() + 
+        th +
+        scale_y_continuous("% rRNA", expand=c(0,0), limits = c(0, 10)) +
+        labs(title = "% rRNA")
+
+```
+
+```{r}
+summary(percentage.of.rrna$percentage.of.rrna)
+```
+
+Our samples have relatively low rRNA % - all of them are below 2%, which is reassuring. Still, these should be removed. 
+
+
+### Proportions of gene biotypes
+```{r reads_genebiotype}
+options(repr.plot.height = 6, repr.plot.width = 20)
+
+pc = ensembl.genes$gene_id[ensembl.genes$gene_biotype == "protein_coding"]
+pg = ensembl.genes$gene_id[ensembl.genes$gene_biotype %in% unique(ensembl.genes$gene_biotype)[grep("pseudogene", unique(ensembl.genes$gene_biotype))]]
+lc = ensembl.genes$gene_id[ensembl.genes$gene_biotype == "lincRNA"]
+
+totalcounts.pc = colSums(counts(dds)[rownames(counts(dds)) %in% pc,])
+totalcounts.pg = colSums(counts(dds)[rownames(counts(dds)) %in% pg,])
+totalcounts.lc = colSums(counts(dds)[rownames(counts(dds)) %in% lc,])
+
+totalcounts.other = colSums(counts(dds)[!(rownames(counts(dds)) %in% c(lc,pc,pg)),])
+
+counts.by.biotype = data.frame(name = names(totalcounts.pc),
+                         protein_coding = totalcounts.pc,
+                         pseudogene = totalcounts.pg,
+                         lincRNA = totalcounts.lc,
+                         other = totalcounts.other
+                         
+                         )
+
+counts.by.biotype$name = factor(counts.by.biotype$name, metadata$sample_id_new)
+
+counts.by.biotype = as.data.frame(t(apply(counts.by.biotype[,2:5], 1, function(x){ 100 * (x / sum(x)) }) ))
+counts.by.biotype$name = names(totalcounts.pc)
+counts.by.biotype$name = factor(counts.by.biotype$name, metadata$sample_id_new)
+
+counts.by.biotype.melt = melt(counts.by.biotype)
+
+options(repr.plot.height = 8, repr.plot.width = 10)
+
+ggplot(counts.by.biotype.melt, aes(x=name, y=value, fill=variable)) +  
+    geom_bar(stat="identity") + 
+    theme_classic() + 
+    scale_y_continuous("% reads", labels = dollar_format(suffix = "%", prefix = ""),  
+                       expand=c(0,0)) + scale_x_discrete("Sample") + 
+    theme(axis.text.x = element_text(angle = 45, colour="black", #family="Arial", 
+                                     hjust = 1, size=8)) +
+    labs(title = "Proportions of gene biotypes", 
+        subtitle = "Before rRNA removal") +
+    th
+```
+
+### Remove rRNA from the analysis
+```{r echo=TRUE}
+dds_filt = dds[!(row.names(counts(dds)) %in% 
+            ensembl.genes$gene_id[ensembl.genes$gene_biotype 
+                                  # %in% c("rRNA", "snoRNA", "snRNA", "Mt_rRNA")]),]
+dds_filt = dds_filt[rowSums(counts(dds_filt)) > 0,]
+```
+
+```{r}
+dim(dds)
+```
+
+```{r}
+dim(dds_filt)
+```
+
+### Check rRNA removed
+```{r}
+rrna.genes = names(ensembl.genes[ensembl.genes$gene_biotype %in% c("rRNA", "snoRNA", "snRNA", "Mt_rRNA")])
+percentage.of.rrna = (colSums(counts(dds_filt[ rownames(counts(dds_filt)) %in% rrna.genes])) / 
+                      colSums(counts(dds_filt))) * 100
+
+percentage.of.rrna = as.data.frame(percentage.of.rrna)
+percentage.of.rrna$name = row.names(percentage.of.rrna)
+percentage.of.rrna$name = factor(percentage.of.rrna$name, rev(metadata$sample_id_new))
+ggplot(percentage.of.rrna, aes(x=name, y=percentage.of.rrna)) + 
+    geom_bar(stat="identity") + 
+    theme_classic() + 
+    coord_flip() + scale_y_continuous("% rRNA", expand=c(0,0)) + 
+    scale_x_discrete("Sample") +
+    th
+```
+
+### Check chrM intact
+```{r}
+in_dds = ensembl.genes[which(rownames(dds_filt) %in% ensembl.genes$gene_id)]
+table(seqnames(in_dds))
+```
+
+### Clustering after rRNA removal
+```{r clustering_filt}
+dds_filt <- estimateSizeFactors(dds_filt) 
+dds_filt <- estimateDispersions(dds_filt)
+rld_filt <- vst(dds_filt)
+
+sampleDists <- dist(t(assay(rld_filt)))
+plot(hclust(sampleDists), main = "Cluster Dendrogram, after rRNA removal")
+```
+
+### PCA after rRNA removal
+```{r pca_samples_filt}
+ntop = 500
+rv <- rowVars(assay(rld_filt))
+select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
+pca = prcomp(t(assay(rld_filt)[select,]))
+percentVar <- pca$sdev^2/sum(pca$sdev^2)
+
+pca_data <- plotPCA(rld_filt, intgroup = c("condition", "low_muscle_mass",
+                                          "low_strength_performance", "age_yr"), 
+                    returnData=TRUE)
+percentVar <- round(100 * attr(pca_data, "percentVar"), digits=2)
+```
+
+```{r}
+options(repr.plot.height = 8, repr.plot.width = 10)
+
+ggplot(pca_data, aes(PC1, PC2, color=condition, shape = low_muscle_mass)) + 
+ geom_point(size=3) +
+  scale_x_continuous(paste0("PC1: ",percentVar[1],"% variance"),
+                    limits = c(-40, 40)) +
+  scale_y_continuous(paste0("PC2: ",percentVar[2],"% variance"),
+                    limits = c(-25, 25)) + 
+  coord_fixed() + theme_classic() + 
+  scale_color_brewer(palette = "Set1") +
+  #geom_text_repel(data = pca_data, aes(PC1,PC2, label = name), 
+  #                hjust = 1.2, size = 5) +
+    labs(title = "PCA, after rRNA removal") +
+    pca_th
+```
+
+```{r}
+options(repr.plot.height = 8, repr.plot.width = 10)
+
+ggplot(pca_data, aes(PC1, PC2, color = condition, shape = low_strength_performance)) + 
+ geom_point(size=3) +
+  scale_x_continuous(paste0("PC1: ",percentVar[1],"% variance"),
+                    limits = c(-40, 40)) +
+  scale_y_continuous(paste0("PC2: ",percentVar[2],"% variance"),
+                    limits = c(-25, 25)) + 
+  coord_fixed() + theme_classic() + 
+  scale_color_brewer(palette = "Set1") +
+  #geom_text_repel(data = pca_data, aes(PC1,PC2, label = name), 
+  #                hjust = 1.2, size = 5) +
+    labs(title = "PCA, after rRNA removal") +
+    pca_th
+```
+
+```{r}
+options(repr.plot.height = 8, repr.plot.width = 10)
+
+ggplot(pca_data, aes(PC1, PC2, color=age_yr)) + 
+ geom_point(size=3) +
+  scale_x_continuous(paste0("PC1: ",percentVar[1],"% variance"),
+                    limits = c(-40, 40)) +
+  scale_y_continuous(paste0("PC2: ",percentVar[2],"% variance"),
+                    limits = c(-25, 25)) + 
+  coord_fixed() + theme_classic() + 
+  #geom_text_repel(data = pca_data, aes(PC1,PC2, label = name), 
+  #                hjust = 1.2, size = 5) +
+    labs(title = "PCA, after rRNA removal") +
+    pca_th
+```
+
+### Size Factors
+```{r size factors}
+summary(sizeFactors(dds_filt))
+df = data.frame(sample_id = names(sizeFactors(dds_filt)), 
+                sizeFactors = sizeFactors(dds_filt))
+
+ggplot(df, aes(x = sample_id, y=sizeFactors)) + 
+    geom_bar(stat="identity") + 
+    scale_y_continuous(limits=c(0,2), expand=c(0,0)) + 
+    theme_classic() + 
+    theme(axis.text.x = element_text(angle = 45, hjust=1, colour="black", 
+                                     #family="Arial",
+                                     size=12)) +
+    th +
+    labs(title = "Size Factors, after rRNA removal")
+```
+
+### MA Plots
+```{r ma-plots, results=FALSE}
+#for(cd in unique(experimental_metadata$condition)){
+#  samples = experimental_metadata$sample_id[experimental_metadata$condition == cd]
+#  for(i in 1:(length(samples)-1)){
+#      print(i)
+#      for(j in (i+1):(length(samples))){
+#        print(j)
+        
+#        x = counts(dds, normalized=TRUE)[, samples[i]]
+#        y = counts(dds, normalized=TRUE)[, samples[j]]
+      
+#        M = log2(x) - log2(y)
+#        A = (log2(x) + log2(y)) / 2
+#        df = data.frame(gene_id = names(x), M=M, A=A)
+      
+#        print(ggplot(df, aes(x=A, y=M)) + geom_point(size = 1.5, alpha = 1/5) + theme_classic() + geom_hline(yintercept=0, colour="blue3", linetype="dashed") + ggtitle(paste(samples[i], "vs", samples[j],  median(abs(x-y)), sep= " ")) + stat_smooth(se = FALSE, method = "loess", color = "red3") + theme_classic())
+#    }
+#  }
+#}
+```
+
+### Normalised counts after removal of rRNA (boxplot)
+```{r nc_boxplot}
+nc = counts(dds_filt, normalized=TRUE)
+nc.melt = melt(nc)
+
+ggplot(nc.melt, aes(x=Var2, y=value)) + 
+    geom_boxplot() + theme_classic() + 
+    theme(axis.text.x = element_text(angle = 90, colour="black", hjust = 1)) + 
+    scale_x_discrete("Sample") + scale_y_continuous("Normalised counts")
+```
+
+```{r}
+nc.threshold = 500000
+test = apply(nc, 1, function(x){ any(x > nc.threshold) })
+ 
+as.data.frame(ensembl.genes[names(test[test])]) #%>%
+  #kable %>% kable_styling("striped", full_width = F) %>% scroll_box(width = "800px", height = "500px")
+```
+
+All of these are protein_coding genes; we can keep them. 
+
+### Normalised counts after removal of rRNA (Transcripts per million (TPM)) 
+```{r tpm}
+#effective_lengths = matrix(0, ncol=length(experimental_metadata$sample_id), nrow=17714)
+#colnames(effective_lengths)= experimental_metadata$sample_id
+#for( i in experimental_metadata$sample_id){
+#  effective_lengths[,i] = read.table(paste("../data/aligned_data/", i, ".genes.results",sep=""), sep="\t", header=TRUE)$effective_length
+#}
+#row.names(effective_lengths) = read.table(paste("../data/aligned_data/", i, ".genes.results",sep=""), sep="\t", header=TRUE)$gene_id
+
+#effective_lengths = rowMeans(effective_lengths[row.names(counts(dds)),])
+#ncrpk = counts(dds) / (effective_lengths / 1000)
+#ncrpk = apply(ncrpk, c(1,2), function(x){if(is.nan(x)){0}else{x}})
+#ncrpk = apply(ncrpk, c(1,2), function(x){if(is.infinite(x)){0}else{x}})
+#ncscalingfactor = colSums(ncrpk) / 1e6
+#nctpm = sweep(ncrpk, 2, ncscalingfactor, "/")
+
+#nctpm.melt = melt(nctpm)
+#ggplot(nctpm.melt, aes(x=Var2, y=value)) + geom_boxplot() + theme_classic() + theme(axis.text.x = element_text(angle = 90, colour="black", hjust = 1)) + scale_x_discrete("Sample") + scale_y_continuous("TPM")
+```
+
+```{r}
+#tpm.threshold = 10000
+#test.tpm = apply(nctpm, 1, function(x){ any(x> tpm.threshold) })
+
+#as.data.frame(ensembl.genes[names(test.tpm[test.tpm])]) #%>%
+ # kable %>% kable_styling("striped", full_width = F) %>% scroll_box(width = "800px", height = "500px")
+    
+```
+
+These all seem to be protein-coding genes, so we will not remove them.
+
+
+# Batch correction
+
+Next, we perform batch correction to remove the effects of age. 
+
+
+# DESeq
+
+```{r}
+dds_corrected <- dds_filt 
+design(dds_corrected) <- formula(~ age_yr + condition)
+
+dds_corrected <- DESeq(dds_corrected)
+```
+
+```{r}
+rld_corrected <- vst(dds_corrected)
+
+# Remove batch effect from country and year
+assay(rld_corrected) <- limma::removeBatchEffect(assay(rld_corrected), 
+                                                batch = metadata$age_yr)
+```
+
+## PCA
+
+```{r}
+ntop = 500
+rv <- rowVars(assay(rld_corrected))
+select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
+pca = prcomp(t(assay(rld_corrected)[select,]))
+percentVar <- pca$sdev^2/sum(pca$sdev^2)
+
+pca_data <- plotPCA(rld_corrected, intgroup = c("age_yr", "condition",
+                                               "low_muscle_mass", "low_strength_performance"), returnData=TRUE)
+percentVar <- round(100 * attr(pca_data, "percentVar"), digits=2)
+```
+
+```{r}
+options(repr.plot.height = 8, repr.plot.width = 10)
+
+pca_corrected <- ggplot(pca_data, aes(PC1, PC2, color = condition, shape=low_muscle_mass)) + 
+ geom_point(size=3) +
+  scale_x_continuous(paste0("PC1: ",percentVar[1],"% variance"),
+                    limits = c(-40, 40)) +
+  scale_y_continuous(paste0("PC2: ",percentVar[2],"% variance"),
+                    limits = c(-25, 25)) + 
+  coord_fixed() + theme_classic() + 
+  scale_color_brewer(palette = "Set1") +
+  #geom_text_repel(data = pca_data, aes(PC1,PC2, label = name), 
+  #                hjust = 1.2, size = 5) +
+    labs(title = "PCA, after batch correction",
+        subtitle = "Corrected for age and country") +
+    pca_th
+
+pca_corrected
+```
+
+```{r}
+options(repr.plot.height = 8, repr.plot.width = 10)
+
+pca_corrected <- ggplot(pca_data, aes(PC1, PC2, 
+                                      color = condition, shape=low_strength_performance)) + 
+ geom_point(size=3) +
+  scale_x_continuous(paste0("PC1: ",percentVar[1],"% variance"),
+                    limits = c(-40, 40)) +
+  scale_y_continuous(paste0("PC2: ",percentVar[2],"% variance"),
+                    limits = c(-25, 25)) + 
+  coord_fixed() + theme_classic() + 
+  scale_color_brewer(palette = "Set1") +
+  #geom_text_repel(data = pca_data, aes(PC1,PC2, label = name), 
+  #                hjust = 1.2, size = 5) +
+    labs(title = "PCA, after batch correction",
+        subtitle = "Corrected for age and country") +
+    pca_th
+
+pca_corrected
+```
+
+Well, they've all (unsurprisingly) clustered closer together - however, there is still no clear separatio between controls and sarcopenia. 
+
+
+## Hierarchical clustering
+
+```{r}
+options(repr.plot.height = 10, repr.plot.width = 20)
+
+sampleDists <- dist(t(assay(rld_corrected)))
+plot(hclust(sampleDists), main = "Cluster Dendrogram, after batch correction")
+```
+
+This makes absolutely no sense whatsoever. 
+
+```{r}
+## If the directory doesn't exist, create it
+if(!dir.exists("../output/")){
+  dir.create("../output/")
+}
+
+if(!dir.exists("../output/02a_QC_jm/")){
+  dir.create("../output/02a_QC_jm/")
+}
+
+saveRDS(dds_filt, "../output/02a_QC_jm/dds_quality_control.RDS")
+saveRDS(dds_corrected, "../output/02a_QC_jm/dds_corrected.RDS")
+#saveRDS(nctpm, "../analysis/output/QC/tpm.RDS")
+#saveRDS(ensembl.genes, "../../output/QC/ensembl_genes.RDS")
+#saveRDS(hs.gtf.db, "../../output/QC/hs_gtf_db.RDS")
+saveRDS(metadata, "../output/02a_QC_jm/metadata.RDS")
+```
+
+### Session Info
+```{r}
+sessionInfo()
+```
+
+```{r}
+
+```

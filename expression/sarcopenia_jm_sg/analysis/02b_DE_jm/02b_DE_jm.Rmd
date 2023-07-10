@@ -1,0 +1,319 @@
+---
+title: "Differential Expression"
+output: gfm
+jupyter: R
+jupyter:
+  jupytext:
+    formats: ipynb,Rmd
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.14.0
+  kernelspec:
+    display_name: R
+    language: R
+    name: ir
+---
+
+# 02b_DE_jm
+
+In this notebook, we continue with differential expression of sarcopenia vs normal tissue for the Jamaica-only cohort. 
+
+Some questions: 
+- Do we see a separation of control vs sarcopenia in the PCA/hierarchical clustering? 
+
+- Does the number of significantly changing genes change? 
+
+- Is Deaf1 significantly differentially expressed? 
+
+- check against nampt because this is the gene that is shown as differentially expressed in the paper
+
+
+# Setup
+
+```{r}
+suppressPackageStartupMessages({
+  library(DESeq2)
+    library(knitr)
+    library(GenomicFeatures)
+    library(RColorBrewer)
+    library(gplots)
+    library(biomaRt)
+    library(grid)
+    library(gridExtra)
+    library(ggplot2)
+    library(lattice)
+    library(reshape)
+    library(geneplotter)
+    library(limma)
+    library(tidyverse)  
+    
+})
+```
+
+```{r}
+## This function is to write out the files of differentially expressed genes
+## It takes in a DESeqResults object, and two strings -- the numerator and denominator used in the analysis -- and writes out csv files
+
+write_files <- function(results, numerator, denominator){
+    # these are all the genes that are differentially expressed between the two conditions, not just the significant ones
+    write.csv(results, paste0(output_dir,numerator,"_",denominator,"_all.csv"), row.names = TRUE, col.names = TRUE)
+
+    # these are the genes that are significantly differentially expressed by FDR 10% and abs(log2fc) > log2(1.5)
+    sig_padj_genes <- results[!is.na(results$padj),]
+    sig_padj_genes <- sig_padj_genes[sig_padj_genes$padj < 0.1,]
+    sig_padj_fc_genes <- sig_padj_genes[abs(sig_padj_genes$log2FoldChange) > lfc.threshold,]
+    write.csv(sig_padj_fc_genes, paste0(output_dir,numerator,"_",denominator,"_significant.csv"), row.names = TRUE, col.names = TRUE)  
+}
+
+## This function plots the volcano plot
+## It takes in a data frame and two strings which are used for the title of the plot
+generate_volcano <- function(data_frame, numerator, denominator){
+lfc.threshold = log2(1.5)
+tmp = as.data.frame(data_frame)
+tmp$signif = ifelse(tmp$log2FoldChange > lfc.threshold & tmp$padj< 0.01, "U1", 
+                                    ifelse(tmp$log2FoldChange > lfc.threshold & tmp$padj< 0.05, "U2",
+                                      ifelse(tmp$log2FoldChange > lfc.threshold & tmp$padj< 0.1, "U3",
+                                        ifelse(tmp$log2FoldChange < -1*lfc.threshold & tmp$padj< 0.01, "D1", 
+                                         ifelse(tmp$log2FoldChange < -1*lfc.threshold & tmp$padj< 0.05, "D2",
+                                          ifelse(tmp$log2FoldChange < -1*lfc.threshold & tmp$padj< 0.1, "D3",                                                  "N"))))))
+tmp$signif = factor(tmp$signif, c("N", "U1", "U2", "U3", "D3", "D2", "D1"))
+    
+x = ggplot(data=tmp, aes(x=log2FoldChange, y=-log10(padj), colour= signif)) + geom_point(alpha=1.0, size=2.00) +
+      ggtitle(paste("Volcano Plot:", numerator, "vs.", denominator)) + 
+      scale_x_continuous("log2(fold change)", limits=c(-6, 6)) +    
+      scale_y_continuous("-log10(FDR)") + 
+      geom_vline(xintercept = lfc.threshold, linetype="dotdash") +
+      geom_vline(xintercept = -1*(lfc.threshold), linetype="dotdash") +
+      geom_hline(yintercept = -log10(0.1), colour="gray40", linetype="dotdash") +   
+      geom_hline(yintercept = -log10(0.05), colour="gray40", linetype="dotdash") + 
+      geom_hline(yintercept = -log10(0.01), colour="gray40", linetype="dotdash") + 
+      scale_colour_manual("", values=c("#666666", "#d73027", "#f46d43", "#fdae61", "#abd9e9", "#74add1", "#4575b4" ), labels = c("N", "U1", "U2", "U3", "D3", "D2", "D1")) + theme_classic() + theme(legend.position = "none", plot.title = element_text(size = 20), axis.title=element_text(size=16,face="bold"))
+print(x)
+}
+
+## This function generates the MA plots with significant changes above the threshold coloured in red and significant changes below the threshold coloured in blue
+## It takes in a DESeqResults object, uses the plotMA function from DESeq2 to obtain the necessary data frame to plot
+
+generate_ma <- function(results, numerator, denominator){
+  df <- DESeq2::plotMA(results, ylim = c(-10,10), colSig = "red", returnData = TRUE)
+  plot <- df %>%
+  mutate(signif = ifelse(lfc > lfc.threshold & isDE == TRUE, "U", 
+                         ifelse(lfc < -lfc.threshold & isDE == TRUE, "D", "N"))) %>%
+  ggplot(aes(x=mean, y=lfc, colour = signif)) + 
+  geom_point(size = 1.5, alpha = 0.8) + 
+  theme_classic() + 
+  geom_hline(yintercept=0, colour="grey40", lwd = 1) + 
+  #stat_smooth(se = FALSE, method = "loess", color = "red3") + 
+  theme_classic() + 
+  scale_colour_manual(values=c("#4575b4","#a3a3a3","#d73027"), labels = c("D", "N", "U")) +
+  ylim(c(-10,10)) +
+  theme(legend.position = "none") +
+  labs(title = paste("Volcano Plot:", numerator, "vs.", denominator)) +
+  ylab("Log fold change") +
+  xlab("Mean of normalized counts") +
+  scale_x_log10()
+  return(plot)
+}
+
+
+```
+
+## Load data
+
+```{r}
+dds = readRDS("../output/02a_QC_jm/dds_quality_control.RDS")
+dds_corrected = readRDS("../output/02a_QC_jm/dds_corrected.RDS")
+ensembl.genes= readRDS("../../data/annotation/ensembl_genes.rds")
+lfc.threshold = log2(1.5)
+
+## Creating the output dir
+if(!dir.exists("../output/02b_DE_jm")){
+  dir.create("../output/02b_DE_jm")
+}
+
+output_dir <- "../output/02b_DE_jm/"
+```
+
+```{r}
+filter = apply(counts(dds, normalized=TRUE), 1, function(x){ mean(x) >= 10 })
+dds = dds[filter, ]
+```
+
+```{r}
+filter_2 = apply(counts(dds_corrected, normalized=TRUE), 1, function(x){ mean(x) >= 10 })
+dds_corrected = dds_corrected[filter_2, ]
+```
+
+# Non-corrected
+
+
+## RLD plot
+
+```{r}
+rld <- vst(dds)
+
+options(repr.plot.height = 10, repr.plot.width = 20)
+assay(rld) %>%
+  as.data.frame() %>%
+  gather() %>%
+  ggplot(aes(x=key, y=value)) + 
+  geom_boxplot() + ylab("Log Expression ") + xlab("Sample")
+```
+
+## Wald test
+
+```{r}
+dds = nbinomWaldTest(dds)
+```
+
+```{r}
+results = results(dds, 
+                  contrast = c("condition", "sarco", "ctrl"),  
+                  filter=rowMeans(counts(dds, normalized=TRUE)), 
+                  test="Wald", alpha=0.1, independentFiltering=TRUE)
+```
+
+```{r}
+options(repr.plot.height = 4, repr.plot.width = 6)
+results$gene_biotype= ensembl.genes$gene_biotype[match(row.names(results), ensembl.genes$gene_id)]
+results$external_gene_name= ensembl.genes$external_gene_name[match(row.names(results), ensembl.genes$gene_id)]
+
+hist(results$pvalue, xlab = "p-value", ylab = "Frequency")
+```
+
+## Number of significant genes
+
+```{r}
+sum(results$padj < 0.1 & abs(results$log2FoldChange) > lfc.threshold, na.rm = T)
+```
+
+```{r}
+write_files(results, "sarco", "ctrl")
+```
+
+```{r}
+options(repr.plot.height = 4, repr.plot.width = 6)
+
+generate_volcano(results,"sarco","ctrl")
+```
+
+```{r}
+summary(results$log2FoldChange)
+```
+
+## Deaf1
+
+```{r}
+deaf1 <- "ENSG00000177030"
+
+results[rownames(results) == deaf1, ]
+```
+
+```{r}
+nampt <- "ENSG00000105835"
+
+results[rownames(results) == nampt, ]
+```
+
+# Batch-corrected
+
+
+## Rld plot
+
+```{r}
+rld_corrected <- vst(dds_corrected)
+
+options(repr.plot.height = 10, repr.plot.width = 20)
+assay(rld_corrected) %>%
+  as.data.frame() %>%
+  gather() %>%
+  ggplot(aes(x=key, y=value)) + 
+  geom_boxplot() + ylab("Log Expression ") + xlab("Sample")
+```
+
+## Wald test
+
+```{r}
+dds_corrected = nbinomWaldTest(dds_corrected)
+
+results_corrected = results(dds_corrected, 
+                  contrast = c("condition", "sarco", "ctrl"),  
+                  filter=rowMeans(counts(dds, normalized=TRUE)), 
+                  test="Wald", alpha=0.1, independentFiltering=TRUE)
+```
+
+```{r}
+options(repr.plot.height = 4, repr.plot.width = 6)
+results_corrected$gene_biotype= ensembl.genes$gene_biotype[match(row.names(results_corrected), ensembl.genes$gene_id)]
+results_corrected$external_gene_name= ensembl.genes$external_gene_name[match(row.names(results_corrected), ensembl.genes$gene_id)]
+
+hist(results_corrected$pvalue, xlab = "p-value", ylab = "Frequency")
+```
+
+## Number of significant genes
+
+```{r}
+sum(results_corrected$padj < 0.1 & abs(results_corrected$log2FoldChange) > lfc.threshold, na.rm = T)
+```
+
+```{r}
+write_files(results_corrected, "sarco_corrected", "ctrl_corrected")
+```
+
+```{r}
+options(repr.plot.height = 4, repr.plot.width = 6)
+
+generate_volcano(results_corrected,"sarco_corrected","ctrl_corrected")
+```
+
+```{r}
+ggplot(na.omit(as.data.frame(results_corrected)), 
+      aes(x = log2FoldChange, y = -log10(pvalue), 
+          color = pvalue < 0.001
+      )
+       )+
+    scale_y_continuous(limits = c(0, 5)) +
+    geom_point() +
+    labs(title = "Colored by pvalue") +
+    scale_color_manual(values = c("grey", "aquamarine3")) +
+    theme_light()
+```
+
+```{r}
+ggplot(na.omit(as.data.frame(results_corrected)), 
+      aes(x = log2FoldChange, y = -log10(pvalue), 
+          color = padj < 0.1
+      )
+       )+
+    scale_y_continuous(limits = c(0, 5)) +
+    geom_point() +
+    labs(title = "Colored by pvalue") +
+    scale_color_manual(values = c("grey", "aquamarine3")) +
+    theme_light()
+```
+
+## Deaf1
+
+```{r}
+deaf1 <- "ENSG00000177030"
+
+results_corrected[rownames(results_corrected) == deaf1, ]
+```
+
+## Nampt
+
+```{r}
+results_corrected[rownames(results_corrected) == nampt, ]
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
+
+```{r}
+
+```
