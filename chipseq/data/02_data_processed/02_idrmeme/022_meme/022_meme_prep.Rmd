@@ -1,0 +1,74 @@
+---
+title: "022_meme_prep"
+author: "Qian Hui TAN"
+date: "`r Sys.Date()`"
+format: gfm
+toc: true
+number-sections: true
+---
+
+# 07_MEME_Prep
+
+In this notebook, we extract sequences from IDR peaks, and save them into a fasta ile. This fasta file will be used to run MEME motif finding enrichments on the server. 
+
+```{r}
+suppressPackageStartupMessages({
+ library(GenomicRanges)
+ library(BSgenome.Mmusculus.UCSC.mm10)
+ library(Biostrings)
+ library(GenomicFeatures)
+  
+})
+
+```
+
+# Setup 
+
+```{r}
+deaf1_bed <- read.table("../021_idr/deaf1_idr_filt.bed")
+genome <- BSgenome.Mmusculus.UCSC.mm10
+```
+
+
+## Checking
+
+```{r}
+# check that min IDR is 540 
+summary(deaf1_bed$scaled_idr)
+head(deaf1_bed)
+```
+
+
+# Resizing
+
+```{r}
+# Get a range within 500 bps of each chip seq peak
+deaf1_peaks = GRanges(deaf1_bed$V1,
+               IRanges(deaf1_bed$V2, deaf1_bed$V3))
+
+deaf1_peaks = keepStandardChromosomes(deaf1_peaks, 
+                                      species = "Mus musculus", 
+                                      pruning.mode = "coarse")
+
+deaf1_peaks = resize(deaf1_peaks, width = 500, fix = "center")
+
+head(deaf1_peaks)
+```
+
+```{r}
+# Retrieve the genome
+deaf1_peak_seqs = getSeq(genome, deaf1_peaks)
+names(deaf1_peak_seqs) = paste("seq", 1:length(deaf1_peak_seqs), sep = "_")
+head(deaf1_peak_seqs)
+```
+
+```{r}
+writeXStringSet(deaf1_peak_seqs, "deaf1_peak_seqs.fa")
+```
+
+
+
+```{r}
+sessionInfo()
+```
+

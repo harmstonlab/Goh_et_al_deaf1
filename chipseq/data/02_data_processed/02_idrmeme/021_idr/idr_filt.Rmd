@@ -1,0 +1,102 @@
+---
+title: "idr_filt"
+author: "Qian Hui TAN"
+date: "`r Sys.Date()`"
+format: gfm
+toc: true
+number-sections: true
+---
+In this notebook, we filter the IDR peaks to only contain high-quality 
+peaks (IDR 0 - 0.05).
+
+# Setup
+
+## Load libraries
+
+```{r}
+suppressPackageStartupMessages({
+    # Load libraries
+    library(ChIPseeker)
+    library(GenomicRanges)
+})
+```
+
+
+## Load data
+
+```{r}
+deaf1_bed <- readPeakFile("deaf1_idr_all.bed")
+```
+
+```{r}
+length(deaf1_bed)
+```
+
+# Data wrangling
+
+
+`deaf1_bed` has a few columns that are named V4 to V14. We rename them so they make sense:
+
+```{r}
+head(deaf1_bed)
+```
+
+We rename the metadata columns (mcols) with the correct names: 
+
+```{r}
+colnames(mcols(deaf1_bed)) <- c(
+                  "idr_name", "scaled_idr", "idr_strand",
+                   "local_idr", "global_idr",
+                   "rep1_chromstart", "rep1_chromend", "rep1_signal",
+                   "rep2_chromstart", "rep2_chromend", "rep2_signal"
+                  )
+```
+
+```{r}
+head(deaf1_bed)
+```
+
+While this IDR file has IDR values, it has not been filtered. We know this because we should only have 608/1550 peaks if we check the IDR output, but here we have 1550 peaks. 
+
+To be sure, we do a quick summary of the scaled IDR values, min(int(log2(-125IDR), 1000). Peaks with an IDR of 0 have a score of 1000, idr 0.05 have a score of int(-125log2(0.05)) = 540, and idr 1.0 has a score of 0.
+
+```{r}
+summary(deaf1_bed$scaled_idr)
+```
+
+Min score is 121 instead of 540 - that means they have not been filtered out. We filter them out: 
+
+```{r}
+# Filter and keep only highly reproducible peaks:
+# IDR 0 - 0.05 (scaled IDR 540 - 1000)
+deaf1_filt <- deaf1_bed[deaf1_bed$scaled_idr >= 540, ]
+length(deaf1_filt)
+
+head(deaf1_filt)
+```
+
+That's strange. Why do we have 608 peaks here, but 607 from the cutoff? 
+
+Let's take a look at the peaks that barely pass the cutoff: 
+
+```{r}
+deaf1_bed[deaf1_bed$scaled_idr >= 540 & deaf1_bed$scaled_idr < 542,]
+```
+We have 2 peaks with scaled_idr 540, and another 1 with scaled_idr = 541. Since they are `integers`, I'm guessing there was a rounding error. 
+
+In any case, we include both the peaks with scaled_idr = 540. 
+
+# Exporting 
+
+```{r}
+write.table(deaf1_filt, "deaf1_idr_filt.bed", quote = F, 
+            col.names = FALSE, row.names = FALSE, sep = "\t")
+
+saveRDS(deaf1_filt, "deaf1_idr_filt.RDS")
+```
+
+
+```{r}
+sessionInfo()
+```
+
