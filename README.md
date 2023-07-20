@@ -3,11 +3,11 @@ All scripts and code necessary to recreate analyses and figures for Hongwen's De
 
 # ChIP-seq
 
-Contains Deaf1-chipseq data. Code for ChIP-seq figure. 
+Code for ChIP-seq figure. Contains Deaf1-chipseq data. 
 
 # Expression
 
-Contains RNA-seq data from GEO. Code for Supplementary Figure 1. 
+Code for Supplementary Figure 1. Contains RNA-seq data from GEO. 
 
 ## Data
 
@@ -22,13 +22,9 @@ gse133979_pdac              | [GSE133979](https://www.ncbi.nlm.nih.gov/geo/query
 
 ## Analysis
 
-{% note %}
+**! Ensure that the annotation files are in the [expression/annotation](expression/annotation/) folder before running the analysis.**
 
-**Note:** ! Ensure that the annotation files are in the [expression/annotation](expression/annotation/) folder before running the analysis.
-
-{% endnote %}
-
-If running from scratch, these scripts can be found in the analysis folder. If the repository is cloned as is, and the .Rproj file is used, there should have no issues running the scripts.
+If running from scratch, these scripts can be found as `.qmd` files in the [expression](expression) folder. If the repository is cloned as is, and the .Rproj file is used, there should have no issues running the scripts.
 
 ## Checksums
 
@@ -36,4 +32,6 @@ Annotation file                    | MD5 checksum
 ---------------------------------- | --------------------------------
 Homo_sapiens.GRCh38.109.chr.gtf.gz | 4fbfbb5c5fadf35f50f8f7134d7a2412
 Mus_musculus.GRCm38.94.chr.gtf.gz  | 9aa004b6c98fc1aec6973af98e22b822
+
+## Version info
 

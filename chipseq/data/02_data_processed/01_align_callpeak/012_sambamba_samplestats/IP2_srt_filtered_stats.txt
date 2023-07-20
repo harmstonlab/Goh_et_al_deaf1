@@ -1,0 +1,415 @@
+# This file was produced by samtools stats (1.9+htslib-1.9) and can be plotted using plot-bamstats
+# This file contains statistics for all reads.
+# The command line was:  stats -@30 /home/qianhui/deaf1_chipseq/data/02_data_processed/bwa_srt/IP2_srt_filtered.bam
+# CHK, Checksum	[2]Read Names	[3]Sequences	[4]Qualities
+# CHK, CRC32 of reads which passed filtering followed by addition (32bit overflow)
+CHK	20d071a3	c1263158	43cb453a
+# Summary Numbers. Use `grep ^SN | cut -f 2-` to extract this part.
+SN	raw total sequences:	40685362
+SN	filtered sequences:	0
+SN	sequences:	40685362
+SN	is sorted:	1
+SN	1st fragments:	40685362
+SN	last fragments:	0
+SN	reads mapped:	40685362
+SN	reads mapped and paired:	0	# paired-end technology bit set + both mates mapped
+SN	reads unmapped:	0
+SN	reads properly paired:	0	# proper-pair bit set
+SN	reads paired:	0	# paired-end technology bit set
+SN	reads duplicated:	0	# PCR or optical duplicate bit set
+SN	reads MQ0:	0	# mapped and MQ=0
+SN	reads QC failed:	0
+SN	non-primary alignments:	0
+SN	total length:	2034268100	# ignores clipping
+SN	total first fragment length:	2034268100	# ignores clipping
+SN	total last fragment length:	0	# ignores clipping
+SN	bases mapped:	2034268100	# ignores clipping
+SN	bases mapped (cigar):	2034268034	# more accurate
+SN	bases trimmed:	0
+SN	bases duplicated:	0
+SN	mismatches:	8142093	# from NM fields
+SN	error rate:	4.002468e-03	# mismatches / bases mapped (cigar)
+SN	average length:	50
+SN	average first fragment length:	50
+SN	average last fragment length:	0
+SN	maximum length:	50
+SN	maximum first fragment length:	0
+SN	maximum last fragment length:	0
+SN	average quality:	67.0
+SN	insert size average:	0.0
+SN	insert size standard deviation:	0.0
+SN	inward oriented pairs:	0
+SN	outward oriented pairs:	0
+SN	pairs with other orientation:	0
+SN	pairs on different chromosomes:	0
+SN	percentage of properly paired reads (%):	0.0
+# First Fragment Qualities. Use `grep ^FFQ | cut -f 2-` to extract this part.
+# Columns correspond to qualities and rows to cycles. First column is the cycle number.
+# Last Fragment Qualities. Use `grep ^LFQ | cut -f 2-` to extract this part.
+# Columns correspond to qualities and rows to cycles. First column is the cycle number.
+# GC Content of first fragments. Use `grep ^GCF | cut -f 2-` to extract this part.
+GCF	0.75	54
+GCF	2.51	253
+GCF	4.52	807
+GCF	6.53	1861
+GCF	8.54	4388
+GCF	10.55	9768
+GCF	12.56	21541
+GCF	14.57	45491
+GCF	16.58	90853
+GCF	18.59	167229
+GCF	20.60	289347
+GCF	22.61	462953
+GCF	24.62	693646
+GCF	26.63	973169
+GCF	28.64	1293876
+GCF	30.65	1636499
+GCF	32.66	1975629
+GCF	34.67	2298348
+GCF	36.68	2580394
+GCF	38.69	2797416
+GCF	40.70	2944528
+GCF	42.71	3012156
+GCF	44.72	2998270
+GCF	46.73	2902611
+GCF	48.74	2729273
+GCF	50.75	2471188
+GCF	52.76	2137684
+GCF	54.77	1756427
+GCF	56.78	1368308
+GCF	58.79	1007057
+GCF	60.80	702813
+GCF	62.81	467161
+GCF	64.82	295847
+GCF	66.83	184056
+GCF	68.84	114582
+GCF	70.85	73304
+GCF	72.86	49504
+GCF	74.87	36051
+GCF	76.88	27273
+GCF	78.89	20398
+GCF	80.90	15095
+GCF	82.91	11146
+GCF	84.92	7372
+GCF	86.93	4649
+GCF	88.94	2658
+GCF	90.95	1449
+GCF	92.96	634
+GCF	94.97	242
+GCF	96.98	81
+GCF	98.99	22
+# GC Content of last fragments. Use `grep ^GCL | cut -f 2-` to extract this part.
+# ACGT content per cycle. Use `grep ^GCC | cut -f 2-` to extract this part. The columns are: cycle; A,C,G,T base counts as a percentage of all A/C/G/T bases [%]; and N and O counts as a percentage of all A/C/G/T bases [%]
+GCC	1	46.75	3.23	3.23	46.79	0.00	0.00
+GCC	2	18.98	31.02	30.99	19.00	0.00	0.00
+GCC	3	24.14	25.83	25.84	24.19	0.00	0.00
+GCC	4	24.36	25.62	25.63	24.39	0.00	0.00
+GCC	5	27.12	22.85	22.85	27.18	0.00	0.00
+GCC	6	28.02	21.97	21.97	28.04	0.00	0.00
+GCC	7	28.40	21.57	21.58	28.45	0.00	0.00
+GCC	8	28.25	21.75	21.74	28.26	0.00	0.00
+GCC	9	28.45	21.52	21.55	28.48	0.00	0.00
+GCC	10	28.32	21.67	21.67	28.34	0.00	0.00
+GCC	11	28.34	21.66	21.66	28.35	0.00	0.00
+GCC	12	28.40	21.59	21.59	28.42	0.00	0.00
+GCC	13	28.71	21.29	21.29	28.71	0.00	0.00
+GCC	14	28.53	21.44	21.45	28.58	0.00	0.00
+GCC	15	28.90	21.08	21.10	28.93	0.00	0.00
+GCC	16	28.85	21.14	21.14	28.88	0.00	0.00
+GCC	17	28.98	21.00	21.00	29.02	0.00	0.00
+GCC	18	28.91	21.06	21.07	28.96	0.00	0.00
+GCC	19	28.97	21.01	21.00	29.01	0.00	0.00
+GCC	20	28.77	21.21	21.22	28.80	0.00	0.00
+GCC	21	28.80	21.19	21.19	28.82	0.00	0.00
+GCC	22	28.66	21.33	21.32	28.69	0.00	0.00
+GCC	23	28.75	21.23	21.24	28.78	0.00	0.00
+GCC	24	28.80	21.18	21.18	28.84	0.00	0.00
+GCC	25	28.92	21.06	21.05	28.97	0.00	0.00
+GCC	26	28.97	21.01	21.01	29.01	0.00	0.00
+GCC	27	29.12	20.86	20.86	29.15	0.00	0.00
+GCC	28	29.07	20.91	20.93	29.09	0.00	0.00
+GCC	29	29.07	20.92	20.93	29.08	0.00	0.00
+GCC	30	29.07	20.92	20.93	29.08	0.00	0.00
+GCC	31	29.00	20.99	20.99	29.02	0.00	0.00
+GCC	32	28.92	21.07	21.08	28.93	0.00	0.00
+GCC	33	28.92	21.06	21.07	28.95	0.00	0.00
+GCC	34	28.95	21.03	21.02	29.00	0.00	0.00
+GCC	35	28.99	21.00	20.99	29.02	0.00	0.00
+GCC	36	29.06	20.93	20.93	29.07	0.00	0.00
+GCC	37	29.08	20.90	20.91	29.12	0.00	0.00
+GCC	38	29.11	20.87	20.88	29.14	0.16	0.00
+GCC	39	29.12	20.85	20.87	29.16	0.16	0.00
+GCC	40	29.11	20.89	20.89	29.12	0.16	0.00
+GCC	41	29.06	20.92	20.92	29.11	0.00	0.00
+GCC	42	28.98	21.01	21.00	29.01	0.00	0.00
+GCC	43	29.01	20.98	20.97	29.04	0.00	0.00
+GCC	44	28.99	20.99	21.01	29.01	0.00	0.00
+GCC	45	29.05	20.93	20.93	29.09	0.00	0.00
+GCC	46	29.07	20.91	20.91	29.11	0.00	0.00
+GCC	47	29.10	20.88	20.88	29.14	0.00	0.00
+GCC	48	29.13	20.84	20.85	29.18	0.00	0.00
+GCC	49	29.11	20.88	20.87	29.14	0.00	0.00
+GCC	50	29.08	20.90	20.91	29.11	0.00	0.00
+# ACGT content per cycle for first fragments. Use `grep ^FBC | cut -f 2-` to extract this part. The columns are: cycle; A,C,G,T base counts as a percentage of all A/C/G/T bases [%]; and N and O counts as a percentage of all A/C/G/T bases [%]
+# ACGT content per cycle for last fragments. Use `grep ^LBC | cut -f 2-` to extract this part. The columns are: cycle; A,C,G,T base counts as a percentage of all A/C/G/T bases [%]; and N and O counts as a percentage of all A/C/G/T bases [%]
+LBC	1	46.75	3.23	3.23	46.79	0.00	0.00
+LBC	2	18.98	31.02	30.99	19.00	0.00	0.00
+LBC	3	24.14	25.83	25.84	24.19	0.00	0.00
+LBC	4	24.36	25.62	25.63	24.39	0.00	0.00
+LBC	5	27.12	22.85	22.85	27.18	0.00	0.00
+LBC	6	28.02	21.97	21.97	28.04	0.00	0.00
+LBC	7	28.40	21.57	21.58	28.45	0.00	0.00
+LBC	8	28.25	21.75	21.74	28.26	0.00	0.00
+LBC	9	28.45	21.52	21.55	28.48	0.00	0.00
+LBC	10	28.32	21.67	21.67	28.34	0.00	0.00
+LBC	11	28.34	21.66	21.66	28.35	0.00	0.00
+LBC	12	28.40	21.59	21.59	28.42	0.00	0.00
+LBC	13	28.71	21.29	21.29	28.71	0.00	0.00
+LBC	14	28.53	21.44	21.45	28.58	0.00	0.00
+LBC	15	28.90	21.08	21.10	28.93	0.00	0.00
+LBC	16	28.85	21.14	21.14	28.88	0.00	0.00
+LBC	17	28.98	21.00	21.00	29.02	0.00	0.00
+LBC	18	28.91	21.06	21.07	28.96	0.00	0.00
+LBC	19	28.97	21.01	21.00	29.01	0.00	0.00
+LBC	20	28.77	21.21	21.22	28.80	0.00	0.00
+LBC	21	28.80	21.19	21.19	28.82	0.00	0.00
+LBC	22	28.66	21.33	21.32	28.69	0.00	0.00
+LBC	23	28.75	21.23	21.24	28.78	0.00	0.00
+LBC	24	28.80	21.18	21.18	28.84	0.00	0.00
+LBC	25	28.92	21.06	21.05	28.97	0.00	0.00
+LBC	26	28.97	21.01	21.01	29.01	0.00	0.00
+LBC	27	29.12	20.86	20.86	29.15	0.00	0.00
+LBC	28	29.07	20.91	20.93	29.09	0.00	0.00
+LBC	29	29.07	20.92	20.93	29.08	0.00	0.00
+LBC	30	29.07	20.92	20.93	29.08	0.00	0.00
+LBC	31	29.00	20.99	20.99	29.02	0.00	0.00
+LBC	32	28.92	21.07	21.08	28.93	0.00	0.00
+LBC	33	28.92	21.06	21.07	28.95	0.00	0.00
+LBC	34	28.95	21.03	21.02	29.00	0.00	0.00
+LBC	35	28.99	21.00	20.99	29.02	0.00	0.00
+LBC	36	29.06	20.93	20.93	29.07	0.00	0.00
+LBC	37	29.08	20.90	20.91	29.12	0.00	0.00
+LBC	38	29.11	20.87	20.88	29.14	0.16	0.00
+LBC	39	29.12	20.85	20.87	29.16	0.16	0.00
+LBC	40	29.11	20.89	20.89	29.12	0.16	0.00
+LBC	41	29.06	20.92	20.92	29.11	0.00	0.00
+LBC	42	28.98	21.01	21.00	29.01	0.00	0.00
+LBC	43	29.01	20.98	20.97	29.04	0.00	0.00
+LBC	44	28.99	20.99	21.01	29.01	0.00	0.00
+LBC	45	29.05	20.93	20.93	29.09	0.00	0.00
+LBC	46	29.07	20.91	20.91	29.11	0.00	0.00
+LBC	47	29.10	20.88	20.88	29.14	0.00	0.00
+LBC	48	29.13	20.84	20.85	29.18	0.00	0.00
+LBC	49	29.11	20.88	20.87	29.14	0.00	0.00
+LBC	50	29.08	20.90	20.91	29.11	0.00	0.00
+# Insert sizes. Use `grep ^IS | cut -f 2-` to extract this part. The columns are: insert size, pairs total, inward oriented pairs, outward oriented pairs, other pairs
+# Read lengths. Use `grep ^RL | cut -f 2-` to extract this part. The columns are: read length, count
+RL	50	40685362
+# Read lengths - first fragments. Use `grep ^FRL | cut -f 2-` to extract this part. The columns are: read length, count
+# Read lengths - last fragments. Use `grep ^LRL | cut -f 2-` to extract this part. The columns are: read length, count
+# Indel distribution. Use `grep ^ID | cut -f 2-` to extract this part. The columns are: length, number of insertions, number of deletions
+ID	1	136811	137789
+ID	2	29374	32250
+ID	3	4282	4516
+# Indels per cycle. Use `grep ^IC | cut -f 2-` to extract this part. The columns are: cycle, number of insertions (fwd), .. (rev) , number of deletions (fwd), .. (rev)
+IC	1	0	0	0	1
+IC	2	0	318	0	260
+IC	3	0	1094	0	1548
+IC	4	0	2009	0	2690
+IC	5	0	3204	0	2889
+IC	6	0	3032	0	3021
+IC	7	0	2945	0	3161
+IC	8	0	3069	0	3237
+IC	9	0	3183	0	3462
+IC	10	0	3380	0	3600
+IC	11	0	3435	0	3791
+IC	12	0	3669	0	4103
+IC	13	0	3779	0	4158
+IC	14	0	3964	0	4230
+IC	15	0	4017	0	4274
+IC	16	0	3902	0	4355
+IC	17	0	3953	0	4396
+IC	18	0	4031	0	4516
+IC	19	0	4076	0	4658
+IC	20	0	4178	0	4603
+IC	21	0	4132	0	4487
+IC	22	0	4172	0	4506
+IC	23	0	4178	0	4599
+IC	24	0	4053	0	4553
+IC	25	0	4063	0	4614
+IC	26	0	4070	0	4572
+IC	27	0	4072	0	4564
+IC	28	0	4094	0	4491
+IC	29	0	4214	0	4612
+IC	30	0	4302	0	4606
+IC	31	0	4358	0	4810
+IC	32	0	4415	0	4780
+IC	33	0	4495	0	4769
+IC	34	0	4207	0	4589
+IC	35	0	4363	0	4458
+IC	36	0	4101	0	4306
+IC	37	0	4017	0	4099
+IC	38	0	3814	0	3978
+IC	39	0	3655	0	3847
+IC	40	0	3501	0	3683
+IC	41	0	3577	0	3498
+IC	42	0	3370	0	3344
+IC	43	0	3629	0	3479
+IC	44	0	3939	0	3705
+IC	45	0	5042	0	2473
+IC	46	0	3102	0	1603
+IC	47	0	2504	0	466
+IC	48	0	1343	0	111
+IC	49	0	447	0	0
+# Coverage distribution. Use `grep ^COV | cut -f 2-` to extract this part.
+COV	[1-1]	1	781780210
+COV	[2-2]	2	352147449
+COV	[3-3]	3	117454119
+COV	[4-4]	4	32296366
+COV	[5-5]	5	7965744
+COV	[6-6]	6	1943212
+COV	[7-7]	7	561640
+COV	[8-8]	8	229230
+COV	[9-9]	9	128112
+COV	[10-10]	10	87502
+COV	[11-11]	11	65498
+COV	[12-12]	12	51215
+COV	[13-13]	13	41957
+COV	[14-14]	14	34758
+COV	[15-15]	15	29071
+COV	[16-16]	16	25129
+COV	[17-17]	17	21019
+COV	[18-18]	18	17926
+COV	[19-19]	19	14988
+COV	[20-20]	20	12450
+COV	[21-21]	21	10585
+COV	[22-22]	22	8724
+COV	[23-23]	23	7226
+COV	[24-24]	24	6025
+COV	[25-25]	25	5152
+COV	[26-26]	26	4301
+COV	[27-27]	27	3632
+COV	[28-28]	28	3259
+COV	[29-29]	29	2900
+COV	[30-30]	30	2710
+COV	[31-31]	31	2219
+COV	[32-32]	32	2098
+COV	[33-33]	33	1866
+COV	[34-34]	34	1768
+COV	[35-35]	35	1624
+COV	[36-36]	36	1541
+COV	[37-37]	37	1438
+COV	[38-38]	38	1400
+COV	[39-39]	39	1312
+COV	[40-40]	40	1120
+COV	[41-41]	41	998
+COV	[42-42]	42	968
+COV	[43-43]	43	875
+COV	[44-44]	44	869
+COV	[45-45]	45	917
+COV	[46-46]	46	875
+COV	[47-47]	47	818
+COV	[48-48]	48	646
+COV	[49-49]	49	666
+COV	[50-50]	50	601
+COV	[51-51]	51	509
+COV	[52-52]	52	529
+COV	[53-53]	53	454
+COV	[54-54]	54	377
+COV	[55-55]	55	341
+COV	[56-56]	56	352
+COV	[57-57]	57	352
+COV	[58-58]	58	348
+COV	[59-59]	59	371
+COV	[60-60]	60	329
+COV	[61-61]	61	317
+COV	[62-62]	62	321
+COV	[63-63]	63	262
+COV	[64-64]	64	245
+COV	[65-65]	65	239
+COV	[66-66]	66	221
+COV	[67-67]	67	200
+COV	[68-68]	68	198
+COV	[69-69]	69	172
+COV	[70-70]	70	176
+COV	[71-71]	71	182
+COV	[72-72]	72	141
+COV	[73-73]	73	132
+COV	[74-74]	74	145
+COV	[75-75]	75	126
+COV	[76-76]	76	101
+COV	[77-77]	77	70
+COV	[78-78]	78	103
+COV	[79-79]	79	72
+COV	[80-80]	80	54
+COV	[81-81]	81	41
+COV	[82-82]	82	17
+COV	[83-83]	83	15
+COV	[84-84]	84	17
+COV	[85-85]	85	19
+COV	[86-86]	86	26
+COV	[87-87]	87	20
+COV	[88-88]	88	27
+COV	[89-89]	89	13
+COV	[90-90]	90	9
+COV	[92-92]	92	4
+COV	[94-94]	94	1
+# GC-depth. Use `grep ^GCD | cut -f 2-` to extract this part. The columns are: GC%, unique sequence percentiles, 10th, 25th, 50th, 75th and 90th depth percentile
+GCD	0.0	0.002	0.000	0.000	0.000	0.000	0.000
+GCD	6.0	0.002	0.002	0.002	0.002	0.002	0.002
+GCD	10.0	0.003	0.002	0.002	0.002	0.002	0.002
+GCD	12.0	0.004	0.002	0.002	0.002	0.002	0.002
+GCD	14.0	0.005	0.002	0.002	0.002	0.002	0.002
+GCD	16.0	0.006	0.002	0.002	0.002	0.002	0.002
+GCD	18.0	0.008	0.002	0.002	0.002	0.002	0.002
+GCD	19.0	0.009	0.005	0.005	0.005	0.005	0.005
+GCD	20.0	0.013	0.002	0.002	0.002	0.002	0.002
+GCD	21.0	0.013	0.005	0.005	0.005	0.005	0.005
+GCD	22.0	0.015	0.002	0.002	0.002	0.002	0.002
+GCD	23.0	0.017	0.007	0.007	0.007	0.015	0.015
+GCD	24.0	0.024	0.002	0.002	0.002	0.002	0.013
+GCD	25.0	0.028	0.005	0.005	0.007	0.007	0.010
+GCD	26.0	0.036	0.002	0.002	0.002	0.005	0.015
+GCD	27.0	0.039	0.005	0.005	0.005	0.007	0.440
+GCD	28.0	0.047	0.002	0.002	0.002	0.002	0.010
+GCD	29.0	0.052	0.005	0.005	0.005	0.007	0.047
+GCD	30.0	0.070	0.002	0.002	0.002	0.010	0.032
+GCD	31.0	0.082	0.005	0.007	0.018	0.268	0.630
+GCD	32.0	0.122	0.002	0.005	0.045	0.533	0.762
+GCD	33.0	0.230	0.023	0.370	0.598	0.980	1.268
+GCD	34.0	0.805	0.352	0.548	0.887	1.110	1.327
+GCD	35.0	2.549	0.455	0.665	0.928	1.100	1.265
+GCD	36.0	6.683	0.463	0.697	0.905	1.067	1.227
+GCD	37.0	13.212	0.480	0.717	0.890	1.050	1.197
+GCD	38.0	21.433	0.477	0.695	0.868	1.023	1.170
+GCD	38.3	21.433	0.260	0.260	0.260	0.260	0.260
+GCD	39.0	30.067	0.472	0.680	0.850	1.000	1.140
+GCD	40.0	38.644	0.472	0.673	0.832	0.980	1.112
+GCD	41.0	46.776	0.470	0.663	0.815	0.955	1.077
+GCD	42.0	54.372	0.477	0.670	0.805	0.933	1.050
+GCD	43.0	61.476	0.498	0.670	0.798	0.920	1.028
+GCD	44.0	68.279	0.522	0.668	0.785	0.897	0.998
+GCD	45.0	74.511	0.558	0.668	0.777	0.887	0.990
+GCD	46.0	80.091	0.558	0.655	0.760	0.877	0.988
+GCD	47.0	84.683	0.562	0.645	0.750	0.868	0.983
+GCD	48.0	88.515	0.548	0.632	0.730	0.853	0.983
+GCD	49.0	91.503	0.543	0.623	0.725	0.850	0.990
+GCD	50.0	93.951	0.530	0.615	0.715	0.848	1.010
+GCD	51.0	95.881	0.545	0.615	0.717	0.855	1.015
+GCD	52.0	97.401	0.538	0.613	0.715	0.873	1.055
+GCD	53.0	98.432	0.562	0.627	0.725	0.895	1.090
+GCD	54.0	99.155	0.550	0.630	0.743	0.935	1.163
+GCD	55.0	99.572	0.562	0.632	0.757	0.950	1.217
+GCD	56.0	99.786	0.553	0.663	0.810	1.033	1.288
+GCD	57.0	99.914	0.538	0.660	0.822	1.058	1.293
+GCD	58.0	99.968	0.005	0.730	0.882	1.148	1.722
+GCD	59.0	99.979	0.005	0.600	0.870	1.195	1.995
+GCD	60.0	99.988	0.002	0.002	0.010	1.570	2.457
+GCD	61.0	99.992	0.005	0.005	0.257	0.760	1.275
+GCD	62.0	99.993	0.002	0.002	0.002	0.002	0.002
+GCD	63.0	99.994	0.120	0.120	0.120	0.120	0.120
+GCD	64.0	99.996	0.002	0.002	0.002	0.007	0.007
+GCD	65.0	99.997	9.580	9.580	9.580	9.580	9.580
+GCD	66.0	99.998	0.002	0.002	0.002	0.002	0.002
+GCD	67.0	99.999	0.010	0.010	0.010	0.010	0.010
+GCD	68.0	100.000	0.002	0.002	0.002	0.002	0.002

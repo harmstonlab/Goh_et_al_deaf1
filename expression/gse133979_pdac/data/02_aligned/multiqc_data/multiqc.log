@@ -1,0 +1,21 @@
+[2023-05-22 10:43:45,516] multiqc                                            [DEBUG  ]  This is MultiQC v1.14 (931327d)
+[2023-05-22 10:43:45,516] multiqc                                            [DEBUG  ]  Command used: /opt/homebrew/Caskroom/miniconda/base/envs/multiqc/bin/multiqc /Users/qh_tan/qianhui/work/deaf1/gse133979_muscle/data/02_aligned/
+[2023-05-22 10:43:46,491] multiqc                                            [DEBUG  ]  Latest MultiQC version is v1.14
+[2023-05-22 10:43:46,492] multiqc                                            [DEBUG  ]  Working dir : /Users/qh_tan/qianhui/work/deaf1/gse133979_muscle/data/02_aligned
+[2023-05-22 10:43:46,492] multiqc                                            [DEBUG  ]  Template    : default
+[2023-05-22 10:43:46,492] multiqc                                            [DEBUG  ]  Running Python 3.11.0 | packaged by conda-forge | (main, Jan 14 2023, 12:26:40) [Clang 14.0.6 ]
+[2023-05-22 10:43:46,494] multiqc                                            [DEBUG  ]  Analysing modules: custom_content, ccs, ngsderive, purple, conpair, lima, peddy, somalier, methylQA, mosdepth, phantompeakqualtools, qualimap, preseq, hifiasm, quast, qorts, rna_seqc, rockhopper, rsem, rseqc, busco, bustools, goleft_indexcov, gffcompare, disambiguate, supernova, deeptools, sargasso, verifybamid, mirtrace, happy, mirtop, sambamba, gopeaks, homer, hops, macs2, theta2, snpeff, gatk, htseq, bcftools, featureCounts, fgbio, dragen, dragen_fastqc, dedup, pbmarkdup, damageprofiler, biobambam2, jcvi, mtnucratio, picard, vep, sentieon, prokka, qc3C, nanostat, samblaster, samtools, sexdeterrmine, eigenstratdatabasetools, bamtools, jellyfish, vcftools, longranger, stacks, varscan2, snippy, umitools, bbmap, bismark, biscuit, diamond, hicexplorer, hicup, hicpro, salmon, kallisto, slamdunk, star, hisat2, tophat, bowtie2, bowtie1, cellranger, snpsplit, odgi, pangolin, nextclade, humid, kat, leehom, adapterRemoval, bbduk, clipandmerge, cutadapt, flexbar, kaiju, kraken, malt, motus, trimmomatic, sickle, skewer, sortmerna, biobloomtools, fastq_screen, afterqc, fastp, fastqc, filtlong, prinseqplusplus, pychopper, porechop, pycoqc, minionqc, anglerfish, multivcfanalyzer, clusterflow, checkqc, bcl2fastq, bclconvert, interop, ivar, flash, seqyclean, optitype, whatshap
+[2023-05-22 10:43:46,495] multiqc                                            [DEBUG  ]  Using temporary directory for creating report: /var/folders/26/_c85yjr54yj9ss9hbygkdll00000gq/T/tmpkj551548
+[2023-05-22 10:43:46,553] multiqc                                            [INFO   ]  Search path : /Users/qh_tan/qianhui/work/deaf1/gse133979_muscle/data/02_aligned
+[2023-05-22 10:44:14,903] multiqc                                            [DEBUG  ]  Summary of files that were skipped by the search: [skipped_module_specific_max_filesize: 1496] // [skipped_no_match: 171] // [skipped_filesize_limit: 34] // [skipped_ignore_pattern: 1]
+[2023-05-22 10:44:15,475] multiqc.plots.bargraph                             [DEBUG  ]  Using matplotlib version 3.7.0
+[2023-05-22 10:44:15,476] multiqc.plots.linegraph                            [DEBUG  ]  Using matplotlib version 3.7.0
+[2023-05-22 10:44:15,476] multiqc                                            [DEBUG  ]  No samples found: custom_content
+[2023-05-22 10:44:15,482] multiqc.modules.rsem.rsem                          [INFO   ]  Found 34 reports
+[2023-05-22 10:44:15,495] multiqc.modules.star.star                          [INFO   ]  Found 34 reports
+[2023-05-22 10:44:15,528] multiqc.modules.fastqc.fastqc                      [INFO   ]  Found 34 reports
+[2023-05-22 10:44:15,672] multiqc                                            [INFO   ]  Compressing plot data
+[2023-05-22 10:44:15,851] multiqc                                            [INFO   ]  Report      : multiqc_report.html
+[2023-05-22 10:44:15,852] multiqc                                            [INFO   ]  Data        : multiqc_data
+[2023-05-22 10:44:15,852] multiqc                                            [DEBUG  ]  Moving data file from '/var/folders/26/_c85yjr54yj9ss9hbygkdll00000gq/T/tmpkj551548/multiqc_data' to '/Users/qh_tan/qianhui/work/deaf1/gse133979_muscle/data/02_aligned/multiqc_data'
+[2023-05-22 10:44:15,924] multiqc                                            [INFO   ]  MultiQC complete

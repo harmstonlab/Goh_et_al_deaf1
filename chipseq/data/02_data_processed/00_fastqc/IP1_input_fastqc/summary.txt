@@ -1,0 +1,10 @@
+PASS	Basic Statistics	IP1_input.fq.gz
+PASS	Per base sequence quality	IP1_input.fq.gz
+PASS	Per sequence quality scores	IP1_input.fq.gz
+FAIL	Per base sequence content	IP1_input.fq.gz
+PASS	Per sequence GC content	IP1_input.fq.gz
+PASS	Per base N content	IP1_input.fq.gz
+PASS	Sequence Length Distribution	IP1_input.fq.gz
+PASS	Sequence Duplication Levels	IP1_input.fq.gz
+PASS	Overrepresented sequences	IP1_input.fq.gz
+PASS	Adapter Content	IP1_input.fq.gz

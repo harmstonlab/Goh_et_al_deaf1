@@ -1,0 +1,3 @@
+SampleID,Factor,Replicate,bamReads,ControlID,bamControl,Peaks,PeakCaller,Tissue,Condition
+IP1,Deaf1,1,data/bams/IP1_srt_filtered.bam,IP1_input,data/bams/IP1_input_srt_filtered.bam,data/peakcalls/IP1_peaks.narrowPeak,narrow,NA,NA
+IP2,Deaf1,2,data/bams/IP2_srt_filtered.bam,IP2_input,data/bams/IP2_input_srt_filtered.bam,data/peakcalls/IP2_peaks.narrowPeak,narrow,NA,NA

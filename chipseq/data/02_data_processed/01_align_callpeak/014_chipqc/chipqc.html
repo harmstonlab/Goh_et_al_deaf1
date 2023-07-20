@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.1.251">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Qian Hui TAN">
+<meta name="dcterms.date" content="2023-01-20">
+
+<title>ChIPQC</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="chipqc_files/libs/clipboard/clipboard.min.js"></script>
+<script src="chipqc_files/libs/quarto-html/quarto.js"></script>
+<script src="chipqc_files/libs/quarto-html/popper.min.js"></script>
+<script src="chipqc_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="chipqc_files/libs/quarto-html/anchor.min.js"></script>
+<link href="chipqc_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="chipqc_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="chipqc_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="chipqc_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="chipqc_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#chipqc" id="toc-chipqc" class="nav-link active" data-scroll-target="#chipqc"><span class="toc-section-number">1</span>  ChIPQC</a></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">ChIPQC</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Qian Hui TAN </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">January 20, 2023</p>
+    </div>
+  </div>
+    
+  </div>
+  
+
+</header>
+
+<section id="chipqc" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> ChIPQC</h1>
+<p>In this file, we run a quick QC of our Chip samples.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>({</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">library</span>(ChIPQC)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Set 6 workers</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">register</span>(<span class="fu">MulticoreParam</span>(<span class="at">workers =</span> <span class="dv">6</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Read in samples:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Load sample data</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>samples <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">'meta/chipqc_metadata.csv'</span>, <span class="at">header =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in read.table(file = file, header = header, sep = sep, quote = quote, :
+incomplete final line found by readTableHeader on 'meta/chipqc_metadata.csv'</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(samples)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  SampleID Factor Replicate                       bamReads ControlID
+1      IP1  Deaf1         1 data/bams/IP1_srt_filtered.bam IP1_input
+2      IP2  Deaf1         2 data/bams/IP2_srt_filtered.bam IP2_input
+                            bamControl                               Peaks
+1 data/bams/IP1_input_srt_filtered.bam data/peakcalls/IP1_peaks.narrowPeak
+2 data/bams/IP2_input_srt_filtered.bam data/peakcalls/IP2_peaks.narrowPeak
+  PeakCaller Tissue Condition
+1     narrow     NA        NA
+2     narrow     NA        NA</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Create ChIPQC object</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>chipObj <span class="ot">&lt;-</span> <span class="fu">ChIPQC</span>(samples, <span class="at">annotation=</span><span class="st">"mm10"</span>) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>IP1  Deaf1   1 narrow</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>IP2  Deaf1   2 narrow</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Checking chromosomes:</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "chr1"</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Compiling annotation...</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Computing metrics for 4 samples...</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Executing in parallel - max 6 cores.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Create ChIPQC report</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ChIPQCreport</span>(chipObj, <span class="at">reportName=</span><span class="st">"ChIP QC report: Deaf1"</span>, <span class="at">reportFolder=</span><span class="st">"ChIPQCreport"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Saving 7 x 5 in image
+Saving 7 x 5 in image
+Saving 7 x 5 in image</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Using Sample as id variables</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Saving 7 x 5 in image
+Saving 7 x 5 in image</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>R version 4.2.1 (2022-06-23)
+Platform: x86_64-apple-darwin17.0 (64-bit)
+Running under: macOS Big Sur ... 10.16
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.2/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/4.2/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] ChIPQC_1.32.2               BiocParallel_1.30.3        
+ [3] DiffBind_3.6.5              SummarizedExperiment_1.26.1
+ [5] Biobase_2.56.0              MatrixGenerics_1.8.1       
+ [7] matrixStats_0.62.0          GenomicRanges_1.48.0       
+ [9] GenomeInfoDb_1.32.4         IRanges_2.30.1             
+[11] S4Vectors_0.34.0            BiocGenerics_0.42.0        
+[13] ggplot2_3.3.6              
+
+loaded via a namespace (and not attached):
+  [1] amap_0.8-19                              
+  [2] colorspace_2.0-3                         
+  [3] rjson_0.2.21                             
+  [4] deldir_1.0-6                             
+  [5] hwriter_1.3.2.1                          
+  [6] ellipsis_0.3.2                           
+  [7] XVector_0.36.0                           
+  [8] rstudioapi_0.14                          
+  [9] farver_2.1.1                             
+ [10] ggrepel_0.9.1                            
+ [11] bit64_4.0.5                              
+ [12] AnnotationDbi_1.58.0                     
+ [13] fansi_1.0.3                              
+ [14] mvtnorm_1.1-3                            
+ [15] apeglm_1.18.0                            
+ [16] xml2_1.3.3                               
+ [17] codetools_0.2-18                         
+ [18] TxDb.Rnorvegicus.UCSC.rn4.ensGene_3.2.2  
+ [19] cachem_1.0.6                             
+ [20] knitr_1.40                               
+ [21] jsonlite_1.8.0                           
+ [22] Nozzle.R1_1.1-1.1                        
+ [23] Rsamtools_2.12.0                         
+ [24] dbplyr_2.2.1                             
+ [25] ashr_2.2-54                              
+ [26] png_0.1-7                                
+ [27] GreyListChIP_1.28.1                      
+ [28] TxDb.Hsapiens.UCSC.hg18.knownGene_3.2.2  
+ [29] httr_1.4.4                               
+ [30] compiler_4.2.1                           
+ [31] assertthat_0.2.1                         
+ [32] Matrix_1.5-1                             
+ [33] fastmap_1.1.0                            
+ [34] TxDb.Hsapiens.UCSC.hg19.knownGene_3.2.2  
+ [35] limma_3.52.4                             
+ [36] cli_3.4.1                                
+ [37] prettyunits_1.1.1                        
+ [38] htmltools_0.5.3                          
+ [39] tools_4.2.1                              
+ [40] coda_0.19-4                              
+ [41] gtable_0.3.1                             
+ [42] glue_1.6.2                               
+ [43] GenomeInfoDbData_1.2.8                   
+ [44] reshape2_1.4.4                           
+ [45] systemPipeR_2.2.2                        
+ [46] dplyr_1.0.10                             
+ [47] rappdirs_0.3.3                           
+ [48] ShortRead_1.54.0                         
+ [49] Rcpp_1.0.9                               
+ [50] TxDb.Dmelanogaster.UCSC.dm3.ensGene_3.2.2
+ [51] TxDb.Mmusculus.UCSC.mm9.knownGene_3.2.2  
+ [52] bbmle_1.0.25                             
+ [53] vctrs_0.5.1                              
+ [54] Biostrings_2.64.1                        
+ [55] rtracklayer_1.56.1                       
+ [56] TxDb.Mmusculus.UCSC.mm10.knownGene_3.10.0
+ [57] xfun_0.33                                
+ [58] stringr_1.4.1                            
+ [59] lifecycle_1.0.3                          
+ [60] irlba_2.3.5.1                            
+ [61] restfulr_0.0.15                          
+ [62] gtools_3.9.4                             
+ [63] XML_3.99-0.10                            
+ [64] zlibbioc_1.42.0                          
+ [65] MASS_7.3-58.1                            
+ [66] scales_1.2.1                             
+ [67] BSgenome_1.64.0                          
+ [68] ragg_1.2.2                               
+ [69] hms_1.1.2                                
+ [70] parallel_4.2.1                           
+ [71] RColorBrewer_1.1-3                       
+ [72] curl_4.3.2                               
+ [73] yaml_2.3.5                               
+ [74] memoise_2.0.1                            
+ [75] emdbook_1.3.12                           
+ [76] biomaRt_2.52.0                           
+ [77] bdsmatrix_1.3-6                          
+ [78] latticeExtra_0.6-30                      
+ [79] stringi_1.7.8                            
+ [80] RSQLite_2.2.17                           
+ [81] SQUAREM_2021.1                           
+ [82] BiocIO_1.6.0                             
+ [83] filelock_1.0.2                           
+ [84] GenomicFeatures_1.48.4                   
+ [85] caTools_1.18.2                           
+ [86] truncnorm_1.0-8                          
+ [87] chipseq_1.46.0                           
+ [88] systemfonts_1.0.4                        
+ [89] rlang_1.0.6                              
+ [90] pkgconfig_2.0.3                          
+ [91] bitops_1.0-7                             
+ [92] TxDb.Celegans.UCSC.ce6.ensGene_3.2.2     
+ [93] evaluate_0.16                            
+ [94] lattice_0.20-45                          
+ [95] invgamma_1.1                             
+ [96] labeling_0.4.2                           
+ [97] GenomicAlignments_1.32.1                 
+ [98] htmlwidgets_1.5.4                        
+ [99] bit_4.0.4                                
+[100] tidyselect_1.2.0                         
+[101] plyr_1.8.7                               
+[102] magrittr_2.0.3                           
+[103] R6_2.5.1                                 
+[104] gplots_3.1.3                             
+[105] generics_0.1.3                           
+[106] DelayedArray_0.22.0                      
+[107] DBI_1.1.3                                
+[108] pillar_1.8.1                             
+[109] withr_2.5.0                              
+[110] KEGGREST_1.36.3                          
+[111] RCurl_1.98-1.8                           
+[112] mixsqp_0.3-48                            
+[113] tibble_3.1.8                             
+[114] crayon_1.5.2                             
+[115] interp_1.1-3                             
+[116] KernSmooth_2.23-20                       
+[117] utf8_1.2.2                               
+[118] BiocFileCache_2.4.0                      
+[119] rmarkdown_2.16                           
+[120] progress_1.2.2                           
+[121] jpeg_0.1-10                              
+[122] locfit_1.5-9.6                           
+[123] grid_4.2.1                               
+[124] blob_1.2.3                               
+[125] digest_0.6.29                            
+[126] numDeriv_2016.8-1.1                      
+[127] textshaping_0.3.6                        
+[128] munsell_0.5.0                            </code></pre>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    setTimeout(function() {
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
+    tippyHover(ref, function() {
+      var popup = window.document.createElement('div');
+      cites.forEach(function(cite) {
+        var citeDiv = window.document.createElement('div');
+        citeDiv.classList.add('hanging-indent');
+        citeDiv.classList.add('csl-entry');
+        var biblioDiv = window.document.getElementById('ref-' + cite);
+        if (biblioDiv) {
+          citeDiv.innerHTML = biblioDiv.innerHTML;
+        }
+        popup.appendChild(citeDiv);
+      });
+      return popup.innerHTML;
+    });
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
