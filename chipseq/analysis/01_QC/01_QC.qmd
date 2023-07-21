@@ -1,0 +1,373 @@
+---
+title: 01_QC
+author: Qian Hui TAN
+date: '`r format(Sys.time(), "%d %B %Y")`'
+format:
+  html: 
+    keep-md: true
+    embed-resources: true
+    df-print: kable
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    number-sections: true
+    smooth-scroll: true
+    code-tools: true
+    code-line-numbers: true
+  gfm: 
+    df-print: kable
+    toc: true 
+    toc-depth: 3
+    number-sections: true
+---
+
+
+# Introduction 
+
+In this notebook, we perform Quality Control (QC) on our Deaf1 ChIP-seq data from C2C12 mouse myoblasts. We use the ChIPseeker package for this. 
+
+# Setup
+
+```{r}
+if(!dir.exists("./figures")){
+    dir.create("./figures")
+  }
+
+## If output directory doesn't exist, create it
+if(!dir.exists("./output")){
+    dir.create("./output")
+  }
+  
+output_dir <- "./output/"
+```
+
+
+```{r global_options, echo=FALSE}
+knitr::opts_chunk$set(fig.path='./figures/',
+                      dev = c("png"))
+
+```
+
+## Load libraries
+
+```{r}
+suppressPackageStartupMessages({
+    # Load libraries
+    library(dplyr)
+    library(ggplot2)
+    library(Matrix)
+    library(ChIPseeker)
+    library(TxDb.Mmusculus.UCSC.mm10.knownGene)
+    library(EnsDb.Mmusculus.v79)
+    library(clusterProfiler)
+    library(AnnotationDbi)
+    library(org.Mm.eg.db)
+    
+})
+```
+
+## Load data
+
+```{r}
+deaf1_filt <- readRDS("../../data/02_data_processed/02_idrmeme/021_idr/deaf1_idr_filt.RDS")
+```
+
+```{r}
+# How many peaks? 
+length(deaf1_filt)
+```
+
+## Load functions
+
+```{r}
+# Takes a character vector of entrez gene IDs as input, runs KEGG enrichment.
+# Prints out a kegg dotplot and saves a readable kegg enrichment as a data frame.
+
+enrich_kegg_readable <- function(target_genes_entrez, 
+                                 #universe, 
+                                 title = "title"){
+    
+    # Run KEGG enrichment
+    ekegg = clusterProfiler::enrichKEGG(target_genes_entrez,
+                                       # universe = as.character(universe), 
+                                       organism = "mmu",
+                                       keyType = "ncbi-geneid")
+    
+    # Print the kegg dotplot
+    print(dotplot(ekegg, title = title))
+    
+    # Convert entrez to gene symbols
+    ekegg = DOSE::setReadable(ekegg, OrgDb = "org.Mm.eg.db", 
+                              keyType = "ENTREZID")
+    
+    # Return the result as a data frame
+    return(as.data.frame(ekegg))
+    
+}
+```
+
+# Make ensembl_genes (run once)
+
+```{r eval = FALSE}
+library(biomaRt)
+library(GenomicRanges)
+library(Biostrings)
+library(GenomicFeatures)
+library(org.Mm.eg.db)
+
+mm.gtf.db <- makeTxDbFromGFF("../../data/04_annotations/Mus_musculus.GRCm38.102.chr.gtf", format="gtf" )
+
+#ensembl.genes = genes(mm.gtf.db)
+ensembl.tx = transcripts(mm.gtf.db)
+# Use version 102 (which fits our gtf file)
+
+mouse = useEnsembl(biomart="ENSEMBL_MART_ENSEMBL", 
+                   dataset="mmusculus_gene_ensembl", 
+                  version = 102)
+
+bm.annotations = getBM(attributes=c("ensembl_gene_id", "entrezgene_id", 
+                                    "gene_biotype", "external_gene_name",
+                                   "ensembl_transcript_id"),
+                       mart=mouse, 
+                       filters="ensembl_transcript_id", 
+                       values=ensembl.tx$tx_name, uniqueRows=TRUE
+                      )
+
+ensembl.tx$gene_biotype = bm.annotations$gene_biotype[match(ensembl.tx$tx_name, bm.annotations$ensembl_transcript_id) ]
+ensembl.tx$entrezgene_id = bm.annotations$entrezgene_id[match(ensembl.tx$tx_name, bm.annotations$ensembl_transcript_id) ]
+ensembl.tx$external_gene_name = bm.annotations$external_gene_name[match(ensembl.tx$tx_name, bm.annotations$ensembl_transcript_id) ]
+ensembl.tx$ensembl_transcript_id =  bm.annotations$ensembl_transcript_id[match(ensembl.tx$tx_name, bm.annotations$ensembl_transcript_id) ]
+ensembl.tx$ensembl_gene_id <- bm.annotations$ensembl_gene_id[
+    match(ensembl.tx$tx_name, bm.annotations$ensembl_transcript_id)
+]
+
+head(ensembl.tx)
+
+# save this as RDS so we don't have to keep running it
+saveRDS(bm.annotations, file = "output/bm_annotations_tx.RDS")
+saveRDS(ensembl.tx, file = "output/ensembl_tx.RDS")
+```
+
+
+```{r}
+ensembl.tx <- readRDS("output/ensembl_tx.RDS")
+```
+
+```{r}
+# Also export this as a csv file
+
+df_ens_tx <- as.data.frame(ensembl.tx)
+
+head(df_ens_tx)
+
+write.csv(df_ens_tx, file = paste0(output_dir, "ensembl_tx.csv"))
+```
+
+
+# Data wrangling
+
+```{r}
+head(deaf1_filt)
+```
+
+
+Check that peaks have been filtered: 
+
+```{r}
+summary(deaf1_filt$scaled_idr)
+```
+
+# ChIPseeker - where does Deaf1 bind? 
+
+Next, we run ChIPseeker to get a general idea of Deaf1 binding sites across the mouse genome. 
+
+
+## Overall genome peak plot
+
+Where does Deaf1 bind? We look at the big picture - a whole genome snapshot first:
+
+```{r}
+#| label: allchr
+#| fig-height: 6
+#| fig-width: 12
+
+covplot(deaf1_filt, weightCol = "scaled_idr")
+```
+
+Deaf1 binds to all chromosomes, though there are distinct regions on Chr15 and 19 that look interesting. 
+
+
+## Binding around TSS
+
+We know that Deaf1 is a transcription factor, so it should be binding somewhere near the transcription start site. Just to be sure, we make a profile plot around the TSS: 
+
+```{r}
+txdb <- TxDb.Mmusculus.UCSC.mm10.knownGene
+```
+
+```{r}
+# Check that it's mm10/GRCm38
+EnsDb.Mmusculus.v79
+```
+
+```{r}
+# Prepare the promoter regions
+promoter <- getPromoters(TxDb = txdb, upstream = 1000, downstream=1000)
+
+tagMatrixList <- getTagMatrix(deaf1_filt, windows = promoter)
+```
+
+```{r}
+#| label: peak-count
+
+plotAvgProf(tagMatrixList, xlim = c(-1000, 1000), 
+            conf = 0.95,resample = 500, facet = "row") +
+    labs(title = "Deaf1 binding sites")
+```
+
+This looks right - Deaf1 mostly binds near the TSS. We plot a heatmap to confirm: 
+
+```{r}
+#| label: peak-heatmap
+
+tagHeatmap(tagMatrixList, 
+           palette = "BuPu",
+           #xlim=c(-1000, 1000), color="skyblue",
+          title = "Deaf1 binding sites") 
+```
+
+We can conclude that Deaf1 does bind around the promoter region, as expected of a transcription factor. 
+
+
+## Genomic regions bound by Deaf1
+
+We know that Deaf1 predominantly binds to the TSS, but does it bind to other regions (eg enhancers, UTRs etc)? 
+
+We annotate regions in the mouse genome, and check where Deaf1 binds to: 
+
+```{r}
+# Retrieve annotations
+peakAnnoList <- annotatePeak(deaf1_filt, TxDb=txdb, 
+                       tssRegion=c(-1000, 1000), verbose=TRUE)
+```
+
+```{r}
+peakAnnoList
+```
+
+As expected, Deaf1 binds to the promoter 95% of the time. It occasionally binds to other distal intergenic regions (1.6%)
+
+```{r}
+#| label: feature-distribution
+#| fig-height: 4
+#| fig-width: 10
+
+plotAnnoBar(peakAnnoList)
+```
+
+Taking a closer look - how far are the binding loci relative to the TSS (1kb? 100kb?)
+
+```{r}
+#| label: dist-to-tss
+
+plotDistToTSS(peakAnnoList, 
+              title="Distribution of transcription factor-binding loci \n relative to TSS")
+```
+
+Most of them bind within 0-1kb of the TSS. 
+
+
+## How many unique genes are bound by 608 peaks? 
+
+```{r}
+deaf1_annot <- data.frame(peakAnnoList)
+head(deaf1_annot)
+```
+
+Distribution of binding annotations: 
+
+```{r}
+deaf1_annot  %>% 
+    group_by(annotation) %>% 
+    summarize(n = n())  %>% 
+    arrange(desc(n))  %>% 
+    slice_head(n = 5)
+```
+
+First, we add the ensembl gene ID to the transcript ID: 
+
+```{r}
+deaf1_annot <- deaf1_annot %>% 
+    tidyr::separate(transcriptId, 
+             into = c("ens_transcript", sep = "."))
+```
+
+```{r}
+deaf1_annot$ens_genes <- ensembl.tx$ensembl_gene_id[
+    match(deaf1_annot$ens_transcript, ensembl.tx$ensembl_transcript_id)]
+```
+
+```{r}
+# Check whether any genes are unmapped
+sum(is.na(deaf1_annot$ens_genes))
+```
+
+0 genes unmapped; all genes are mapped. 
+
+How many unique genes? 
+
+```{r}
+length(unique(deaf1_annot$ens_genes))
+```
+
+How many genes have more than 1 binding site? 
+
+```{r}
+deaf1_annot  %>% 
+    group_by(ens_genes) %>% 
+    summarize(n = n()) %>% 
+    arrange(desc(n))  %>% 
+    filter(n > 1)
+```
+
+12 genes have more than 1 binding site; here they are.
+
+
+# IDR plot
+
+```{r}
+df_idr <- as.data.frame(deaf1_filt)
+
+head(df_idr)
+```
+
+```{r}
+#| label: idr-plot
+#| fig-width: 6 
+#| fig-height: 6
+
+ggplot(df_idr, aes(x = rep1_signal, y = rep2_signal,
+                  color = scaled_idr)) +
+    geom_point() +
+    geom_abline(intercept = 0, slope = 1, color = "red") +
+    coord_fixed() +
+    theme_light() +
+    labs(title = "Peak scores for rep 1 and rep 2")
+```
+
+As expected, IDR only keeps peaks that have high signal in both replicates - they mostly cluster along the slope. 
+
+# Summary
+
+- 595 unique genes bound by 608 peaks
+- Among them, 12 genes have more than 1 Deaf1 binding site; the max is 3 peaks. 
+- Deaf1 doesn't display a clear chromosome specificity (though there are regions in Chr12 and 19 that seem to have a lot of peaks
+- Deaf1 mostly binds to promoter regions (95% of the time), and it typically binds within 0-1bp of the TSS
+- IDR plot confirms that we have kept highly confident peaks. 
+
+# sessionInfo()
+
+```{r}
+sessionInfo()
+```
+
