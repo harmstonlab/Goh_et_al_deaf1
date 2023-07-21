@@ -59,7 +59,6 @@ suppressPackageStartupMessages({
     library(ChIPseeker)
     library(TxDb.Mmusculus.UCSC.mm10.knownGene)
     library(EnsDb.Mmusculus.v79)
-    library(clusterProfiler)
     library(AnnotationDbi)
     library(org.Mm.eg.db)
     
@@ -75,35 +74,6 @@ deaf1_filt <- readRDS("../../data/02_data_processed/02_idrmeme/021_idr/deaf1_idr
 ```{r}
 # How many peaks? 
 length(deaf1_filt)
-```
-
-## Load functions
-
-```{r}
-# Takes a character vector of entrez gene IDs as input, runs KEGG enrichment.
-# Prints out a kegg dotplot and saves a readable kegg enrichment as a data frame.
-
-enrich_kegg_readable <- function(target_genes_entrez, 
-                                 #universe, 
-                                 title = "title"){
-    
-    # Run KEGG enrichment
-    ekegg = clusterProfiler::enrichKEGG(target_genes_entrez,
-                                       # universe = as.character(universe), 
-                                       organism = "mmu",
-                                       keyType = "ncbi-geneid")
-    
-    # Print the kegg dotplot
-    print(dotplot(ekegg, title = title))
-    
-    # Convert entrez to gene symbols
-    ekegg = DOSE::setReadable(ekegg, OrgDb = "org.Mm.eg.db", 
-                              keyType = "ENTREZID")
-    
-    # Return the result as a data frame
-    return(as.data.frame(ekegg))
-    
-}
 ```
 
 # Make ensembl_genes (run once)
@@ -313,6 +283,13 @@ sum(is.na(deaf1_annot$ens_genes))
 ```
 
 0 genes unmapped; all genes are mapped. 
+
+```{r}
+# export deaf1_annot
+
+write.csv(deaf1_annot, file = paste0(output_dir, "deaf1_annot.csv"))
+```
+
 
 How many unique genes? 
 
