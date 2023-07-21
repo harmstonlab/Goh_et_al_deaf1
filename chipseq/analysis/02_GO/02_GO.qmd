@@ -1,0 +1,232 @@
+---
+title: 02_GO
+author: Qian Hui TAN
+date: '`r format(Sys.time(), "%d %B %Y")`'
+format:
+  html: 
+    keep-md: true
+    embed-resources: true
+    df-print: kable
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    number-sections: true
+    smooth-scroll: true
+    code-tools: true
+    code-line-numbers: true
+  gfm: 
+    df-print: kable
+    toc: true 
+    toc-depth: 3
+    number-sections: true
+---
+
+
+# Introduction 
+
+In this notebook, we perform Gene Ontology (GO) enrichment for the Deaf1-bound peaks. 
+
+# Setup
+
+```{r}
+if(!dir.exists("./figures")){
+    dir.create("./figures")
+  }
+
+## If output directory doesn't exist, create it
+if(!dir.exists("./output")){
+    dir.create("./output")
+  }
+  
+output_dir <- "./output/"
+```
+
+
+```{r global_options, echo=FALSE}
+knitr::opts_chunk$set(fig.path='./figures/',
+                      dev = c("png"))
+```
+
+## Load libraries
+
+```{r}
+suppressPackageStartupMessages({
+    # Load libraries
+    library(clusterProfiler)
+    library(org.Mm.eg.db)
+    library(ggplot2)
+})
+```
+
+
+
+## Read in files
+
+```{r}
+deaf1_annot <- read.csv("../01_QC/output/deaf1_annot.csv")
+```
+
+
+## Load functions
+
+```{r}
+custom_ego <- function(interesting_pathways, 
+                       ego_tibble,
+                       title = "title", 
+                       font_size = 14) {
+  
+  # Get relevant columns
+  interesting_egos <- ego_tibble%>% 
+    dplyr::select("Description", "GeneRatio", "p.adjust", "Count") %>% 
+    filter(Description %in% interesting_pathways) %>% 
+    # Convert GeneRatio from fraction to decimal
+    mutate(GeneRatio = DOSE::parse_ratio(GeneRatio)) %>% 
+    arrange(GeneRatio) %>% 
+    # Preserve sorted order
+    mutate(Description = factor(Description, levels = unique(Description)))
+  
+  
+  # Plot
+  df_plot <- ggplot2::ggplot(interesting_egos, 
+                    aes(x = GeneRatio, y = Description,
+                        color = p.adjust)) +
+    geom_point(aes(size = Count)) +
+    scale_color_gradient2(low = "red", 
+                          mid = "white", 
+                          high = "white",
+                          midpoint = 0.5, 
+                         limits = c(0, 1)) +
+    scale_size_continuous(range  = c(10, 25), 
+                        limits = c(10, 25), 
+                        breaks = c(seq(10, 25, 5))) +
+    labs(
+      title = title,
+      y = "") +
+    theme_light() +
+    theme(axis.text.y = element_text(size = font_size))
+  
+  return(df_plot)
+  
+}
+
+```
+
+
+```{r}
+# Takes a character vector of entrez gene IDs as input, runs KEGG enrichment.
+# Prints out a kegg dotplot and saves a readable kegg enrichment as a data frame.
+
+enrich_kegg_readable <- function(target_genes_entrez, 
+                                 #universe, 
+                                 title = "title"){
+    
+    # Run KEGG enrichment
+    ekegg = clusterProfiler::enrichKEGG(target_genes_entrez,
+                                       # universe = as.character(universe), 
+                                       organism = "mmu",
+                                       keyType = "ncbi-geneid")
+    
+    # Print the kegg dotplot
+    print(dotplot(ekegg, title = title))
+    
+    # Convert entrez to gene symbols
+    ekegg = DOSE::setReadable(ekegg, OrgDb = "org.Mm.eg.db", 
+                              keyType = "ENTREZID")
+    
+    # Return the result as a data frame
+    return(as.data.frame(ekegg))
+    
+}
+```
+
+
+# GO Enrichment analysis
+
+```{r}
+# Run GO enrichment analysis 
+ego <- enrichGO(gene = deaf1_annot$geneId, 
+                    keyType = "ENTREZID", 
+                    OrgDb = org.Mm.eg.db, 
+                    ont = "BP", 
+                    pAdjustMethod = "BH", 
+                    qvalueCutoff = 0.05, 
+                    readable = TRUE)
+```
+
+```{r}
+# Output results from GO analysis to a table
+df_ego <- data.frame(ego)
+
+dim(df_ego)
+head(df_ego)
+```
+
+```{r}
+write.csv(df_ego, "output/deaf1_ego_all.csv")
+```
+
+## Default GO plot
+
+```{r}
+#| label: go-plot
+#| fig-height: 10
+#| fig-width: 5
+
+
+# Dotplot visualization
+ego_plot <- dotplot(ego, showCategory=10,
+                    title = "GO enrichment")
+
+ego_plot
+```
+
+## Custom GO
+
+
+```{r}
+#| label: custom-ego
+
+interesting_pathways <- c("DNA-templated transcription initiation", 
+                          "regulation of translation", 
+                          "macroautophagy", 
+                          "stem cell population maintenance")
+
+custom_ego(interesting_pathways, 
+           df_ego, 
+           title = "GO enrichments")
+```
+
+
+```{r}
+df_ego %>% 
+  filter(Description %in% interesting_pathways)
+```
+
+
+# KEGG enrichment
+
+
+```{r}
+#| label: kegg
+#| fig-height: 5
+
+ekegg <- enrich_kegg_readable(deaf1_annot$geneId, title = "KEGG enrichment")
+```
+
+```{r}
+dim(ekegg)
+```
+
+```{r}
+ekegg
+```
+
+```{r}
+write.csv(ekegg, file = paste0(output_dir, "deaf1_kegg_all.csv"))
+```
+
+
+```{r}
+sessionInfo()
+```
+
