@@ -198,9 +198,65 @@ custom_ego(interesting_pathways,
 
 
 ```{r}
-df_ego %>% 
+gobp_filt <- df_ego %>% 
   filter(Description %in% interesting_pathways)
 ```
+
+
+## Log2 obs/exp
+
+```{r}
+# Convert fraction to decimals
+gobp_filt$generatio <- sapply(strsplit(gobp_filt$GeneRatio, "/"), 
+                              function(x) { x <- as.numeric(x); x[1] / x[2]})
+gobp_filt$bgratio <- sapply(strsplit(gobp_filt$BgRatio, "/"), 
+                              function(x) { x <- as.numeric(x); x[1] / x[2]})
+
+# Calculate 
+gobp_filt$log2obsexp <- log2(gobp_filt$generatio/gobp_filt$bgratio)
+
+# Arrange in descending order
+gobp_filt <- gobp_filt %>% 
+  arrange(desc(gobp_filt$log2obsexp)) %>% 
+  mutate(Description = factor(Description,
+                              levels = rev(gobp_filt$Description)))
+
+gobp_filt
+
+```
+
+Plot
+```{r}
+#| label: log2oe_plot
+#| fig-height: 5
+#| fig-width: 7
+
+log2oe_plot <- ggplot(gobp_filt,
+        aes(x = log2obsexp, y = Description)) +
+  geom_point(aes(size = Count, color = p.adjust)) +
+  labs(x = (expression("log"[2]*"(obs/exp)")), 
+       y = "") +
+  scale_x_continuous(limits = c(0, 3)) +
+  # Customize sizes and colors
+  scale_size(
+    name = "Number of genes",
+    limits = c(10, 25), 
+    breaks = c(10, 15, 20, 25)) +
+  scale_color_gradient2(
+    name = "Adjusted P-value",
+    limits = c(0, 1), breaks = c(0.00, 0.50, 1.00), 
+    low = "firebrick3", mid = "white", high = "white", 
+    midpoint = 0.5) +
+  theme_classic() +
+  # Adjust legend positions
+  theme(legend.position = "bottom") +
+  guides(colour = guide_colourbar(title.position = "top", title.hjust = 0.5),
+         size = guide_legend(title.position = "top", title.hjust = 0.5))
+
+
+log2oe_plot
+```
+
 
 
 # KEGG enrichment

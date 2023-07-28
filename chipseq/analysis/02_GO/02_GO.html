@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Qian Hui TAN">
-<meta name="dcterms.date" content="2023-07-21">
+<meta name="dcterms.date" content="2023-07-28">
 
 <title>02_GO</title>
 <style>
@@ -3019,6 +3019,7 @@ vertical-align: -.125em;
   <ul class="collapse">
   <li><a href="#default-go-plot" id="toc-default-go-plot" class="nav-link" data-scroll-target="#default-go-plot"><span class="header-section-number">3.1</span> Default GO plot</a></li>
   <li><a href="#custom-go" id="toc-custom-go" class="nav-link" data-scroll-target="#custom-go"><span class="header-section-number">3.2</span> Custom GO</a></li>
+  <li><a href="#log2-obsexp" id="toc-log2-obsexp" class="nav-link" data-scroll-target="#log2-obsexp"><span class="header-section-number">3.3</span> Log2 obs/exp</a></li>
   </ul></li>
   <li><a href="#kegg-enrichment" id="toc-kegg-enrichment" class="nav-link" data-scroll-target="#kegg-enrichment"><span class="header-section-number">4</span> KEGG enrichment</a></li>
   </ul>
@@ -3045,7 +3046,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">July 21, 2023</p>
+      <p class="date">July 28, 2023</p>
     </div>
   </div>
   
@@ -3355,23 +3356,50 @@ vertical-align: -.125em;
 <div class="cell">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1"></a>df_ego <span class="sc">%&gt;%</span> </span>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1"></a>gobp_filt <span class="ot">&lt;-</span> df_ego <span class="sc">%&gt;%</span> </span>
 <span id="cb13-2"><a href="#cb13-2"></a>  <span class="fu">filter</span>(Description <span class="sc">%in%</span> interesting_pathways)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="log2-obsexp" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="log2-obsexp"><span class="header-section-number">3.3</span> Log2 obs/exp</h2>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a><span class="co"># Convert fraction to decimals</span></span>
+<span id="cb14-2"><a href="#cb14-2"></a>gobp_filt<span class="sc">$</span>generatio <span class="ot">&lt;-</span> <span class="fu">sapply</span>(<span class="fu">strsplit</span>(gobp_filt<span class="sc">$</span>GeneRatio, <span class="st">&quot;/&quot;</span>), </span>
+<span id="cb14-3"><a href="#cb14-3"></a>                              <span class="cf">function</span>(x) { x <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(x); x[<span class="dv">1</span>] <span class="sc">/</span> x[<span class="dv">2</span>]})</span>
+<span id="cb14-4"><a href="#cb14-4"></a>gobp_filt<span class="sc">$</span>bgratio <span class="ot">&lt;-</span> <span class="fu">sapply</span>(<span class="fu">strsplit</span>(gobp_filt<span class="sc">$</span>BgRatio, <span class="st">&quot;/&quot;</span>), </span>
+<span id="cb14-5"><a href="#cb14-5"></a>                              <span class="cf">function</span>(x) { x <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(x); x[<span class="dv">1</span>] <span class="sc">/</span> x[<span class="dv">2</span>]})</span>
+<span id="cb14-6"><a href="#cb14-6"></a></span>
+<span id="cb14-7"><a href="#cb14-7"></a><span class="co"># Calculate </span></span>
+<span id="cb14-8"><a href="#cb14-8"></a>gobp_filt<span class="sc">$</span>log2obsexp <span class="ot">&lt;-</span> <span class="fu">log2</span>(gobp_filt<span class="sc">$</span>generatio<span class="sc">/</span>gobp_filt<span class="sc">$</span>bgratio)</span>
+<span id="cb14-9"><a href="#cb14-9"></a></span>
+<span id="cb14-10"><a href="#cb14-10"></a><span class="co"># Arrange in descending order</span></span>
+<span id="cb14-11"><a href="#cb14-11"></a>gobp_filt <span class="ot">&lt;-</span> gobp_filt <span class="sc">%&gt;%</span> </span>
+<span id="cb14-12"><a href="#cb14-12"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(gobp_filt<span class="sc">$</span>log2obsexp)) <span class="sc">%&gt;%</span> </span>
+<span id="cb14-13"><a href="#cb14-13"></a>  <span class="fu">mutate</span>(<span class="at">Description =</span> <span class="fu">factor</span>(Description,</span>
+<span id="cb14-14"><a href="#cb14-14"></a>                              <span class="at">levels =</span> <span class="fu">rev</span>(gobp_filt<span class="sc">$</span>Description)))</span>
+<span id="cb14-15"><a href="#cb14-15"></a></span>
+<span id="cb14-16"><a href="#cb14-16"></a>gobp_filt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div class="kable-table">
 <table class="table table-sm table-striped small">
 <colgroup>
-<col style="width: 4%">
-<col style="width: 4%">
-<col style="width: 14%">
+<col style="width: 3%">
+<col style="width: 3%">
+<col style="width: 12%">
 <col style="width: 3%">
 <col style="width: 3%">
 <col style="width: 3%">
 <col style="width: 3%">
 <col style="width: 3%">
-<col style="width: 56%">
-<col style="width: 2%">
+<col style="width: 50%">
+<col style="width: 1%">
+<col style="width: 3%">
+<col style="width: 3%">
+<col style="width: 3%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -3385,6 +3413,9 @@ vertical-align: -.125em;
 <th style="text-align: right;">qvalue</th>
 <th style="text-align: left;">geneID</th>
 <th style="text-align: right;">Count</th>
+<th style="text-align: right;">generatio</th>
+<th style="text-align: right;">bgratio</th>
+<th style="text-align: right;">log2obsexp</th>
 </tr>
 </thead>
 <tbody>
@@ -3399,6 +3430,9 @@ vertical-align: -.125em;
 <td style="text-align: right;">0.0001035</td>
 <td style="text-align: left;">Med12/Bdp1/Taf7/Med6/Med23/Tbp/Tbpl1/Brf2/Ercc3/Ttf1/Brf1/Med17/Dhx36</td>
 <td style="text-align: right;">13</td>
+<td style="text-align: right;">0.0225694</td>
+<td style="text-align: right;">0.0043188</td>
+<td style="text-align: right;">2.385657</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">GO:0006417</td>
@@ -3411,6 +3445,9 @@ vertical-align: -.125em;
 <td style="text-align: right;">0.0001124</td>
 <td style="text-align: left;">Eif4a3/Gle1/Pum3/Impact/Dcp1a/Secisbp2/Mettl14/Mettl3/Exosc3/Eif2ak1/Eif4g3/Eif4e2/Alkbh1/Ngrn/Taco1/Larp4b/Mtor/Mief1/Rack1/Aco1/C1qbp/Dhx36/Dapk3/Rara</td>
 <td style="text-align: right;">24</td>
+<td style="text-align: right;">0.0416667</td>
+<td style="text-align: right;">0.0136130</td>
+<td style="text-align: right;">1.613913</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">GO:0016236</td>
@@ -3423,6 +3460,9 @@ vertical-align: -.125em;
 <td style="text-align: right;">0.0048308</td>
 <td style="text-align: left;">Wac/Phb2/Usp30/Pik3c3/Wdr24/Plaa/Tmem41b/Atg16l1/Mtor/Ift88/Sptlc1/Rab7/Sec22b/Wdr45b/Rnf31</td>
 <td style="text-align: right;">15</td>
+<td style="text-align: right;">0.0260417</td>
+<td style="text-align: right;">0.0086031</td>
+<td style="text-align: right;">1.597891</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">GO:0019827</td>
@@ -3435,10 +3475,46 @@ vertical-align: -.125em;
 <td style="text-align: right;">0.0201036</td>
 <td style="text-align: left;">Bmpr1a/Med12/Med6/Mettl14/Mettl3/Brd9/Zc3h13/Klf10/Fancd2/Ski/Med17/Actl6a</td>
 <td style="text-align: right;">12</td>
+<td style="text-align: right;">0.0208333</td>
+<td style="text-align: right;">0.0071865</td>
+<td style="text-align: right;">1.535525</td>
 </tr>
 </tbody>
 </table>
 </div>
+</div>
+</div>
+<p>Plot</p>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1"></a>log2oe_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(gobp_filt,</span>
+<span id="cb15-2"><a href="#cb15-2"></a>        <span class="fu">aes</span>(<span class="at">x =</span> log2obsexp, <span class="at">y =</span> Description)) <span class="sc">+</span></span>
+<span id="cb15-3"><a href="#cb15-3"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">size =</span> Count, <span class="at">color =</span> p.adjust)) <span class="sc">+</span></span>
+<span id="cb15-4"><a href="#cb15-4"></a>  <span class="fu">labs</span>(<span class="at">x =</span> (<span class="fu">expression</span>(<span class="st">&quot;log&quot;</span>[<span class="dv">2</span>]<span class="sc">*</span><span class="st">&quot;(obs/exp)&quot;</span>)), </span>
+<span id="cb15-5"><a href="#cb15-5"></a>       <span class="at">y =</span> <span class="st">&quot;&quot;</span>) <span class="sc">+</span></span>
+<span id="cb15-6"><a href="#cb15-6"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">3</span>)) <span class="sc">+</span></span>
+<span id="cb15-7"><a href="#cb15-7"></a>  <span class="co"># Customize sizes and colors</span></span>
+<span id="cb15-8"><a href="#cb15-8"></a>  <span class="fu">scale_size</span>(</span>
+<span id="cb15-9"><a href="#cb15-9"></a>    <span class="at">name =</span> <span class="st">&quot;Number of genes&quot;</span>,</span>
+<span id="cb15-10"><a href="#cb15-10"></a>    <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">25</span>), </span>
+<span id="cb15-11"><a href="#cb15-11"></a>    <span class="at">breaks =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">15</span>, <span class="dv">20</span>, <span class="dv">25</span>)) <span class="sc">+</span></span>
+<span id="cb15-12"><a href="#cb15-12"></a>  <span class="fu">scale_color_gradient2</span>(</span>
+<span id="cb15-13"><a href="#cb15-13"></a>    <span class="at">name =</span> <span class="st">&quot;Adjusted P-value&quot;</span>,</span>
+<span id="cb15-14"><a href="#cb15-14"></a>    <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>), <span class="at">breaks =</span> <span class="fu">c</span>(<span class="fl">0.00</span>, <span class="fl">0.50</span>, <span class="fl">1.00</span>), </span>
+<span id="cb15-15"><a href="#cb15-15"></a>    <span class="at">low =</span> <span class="st">&quot;firebrick3&quot;</span>, <span class="at">mid =</span> <span class="st">&quot;white&quot;</span>, <span class="at">high =</span> <span class="st">&quot;white&quot;</span>, </span>
+<span id="cb15-16"><a href="#cb15-16"></a>    <span class="at">midpoint =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb15-17"><a href="#cb15-17"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
+<span id="cb15-18"><a href="#cb15-18"></a>  <span class="co"># Adjust legend positions</span></span>
+<span id="cb15-19"><a href="#cb15-19"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">&quot;bottom&quot;</span>) <span class="sc">+</span></span>
+<span id="cb15-20"><a href="#cb15-20"></a>  <span class="fu">guides</span>(<span class="at">colour =</span> <span class="fu">guide_colourbar</span>(<span class="at">title.position =</span> <span class="st">&quot;top&quot;</span>, <span class="at">title.hjust =</span> <span class="fl">0.5</span>),</span>
+<span id="cb15-21"><a href="#cb15-21"></a>         <span class="at">size =</span> <span class="fu">guide_legend</span>(<span class="at">title.position =</span> <span class="st">&quot;top&quot;</span>, <span class="at">title.hjust =</span> <span class="fl">0.5</span>))</span>
+<span id="cb15-22"><a href="#cb15-22"></a></span>
+<span id="cb15-23"><a href="#cb15-23"></a></span>
+<span id="cb15-24"><a href="#cb15-24"></a>log2oe_plot</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<p><img src="data:image/png;base64,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i1qyfvnll0IBQgFj5cqVtmHDBps+fbrpsYoC8aJFi/xd7bfffjPtr8CcKviqnlmzZtmMGTPidWm/adOmueOu/fMdWczrKlALZ7K6Fi9ebGpZDSvBa9P5qkVO56XlflEdkydPduftL9M16Pi6nTp1avz8tF71TJkyJelxtf3cuXP9atz+qmfOnDluv+OPP94OP/xwt17noWuTgfbzS/Cct99+e7v66qv9Ve5Wz1Oihf/mRMsT1/k7B+sKuz5/G7W4+8+DzPzlfl3JnrvgeWu7G2+80erVq+fv4l6LwdeNVoSdR3wn7iCAAAIIZC0w7/W3rVzVqin3j3k5YUaPXqbxoZTiK7BFxoAqbHbs2NEFEb8rvoI3hkMBVS1U++yzj9WqVWsTtffff9/atWvnfq699lq74IILTPsllhdffNEFobvvvtvuvfde+/777+3222+3HXbYwSZMmGCXX365C8Tq3leLasWKFa2goMDmz59vp512mg0aNMiFCwWrSy65xPr06eMC2oIFC6xy5couhKjeYFGoU7hu0KCBC68Knk899ZQbbqAwqEDVqFEj23nnnU3n7odfBfF77rnHHV91qtu9WrVq7qd+/frBQ7j7wWvr1KmTPfbYYy58ykGtsbfccosLbLVr17bx48e7czrooIPcNSiU6zxr1Khhq1evduenMKZA2LhxY3f9zZs3d1Y6mM7/vffec28WFNQffvhhV49Cl1qzjzrqKNNzqedKLc5dunSxZs2aueEV2ua8885zz3PwnLXdQw89ZM8995wLvLp2P0Dr+ZGB6lRde++9t7sWBdD27dvbVVddVchDz6VeL6pLz1Gy61Po1DZ6njUMRMd69dVXrW3btvF9w5674HnrvPR6U+t9kyZNrFevXm74RZ06dUyvC7Xg6/zDzqN69erxc9fra/ny5e5xstdvfEPuIIAAAggUElj8yee20fv7la4UVChvy7/9zuoffUS6TVm/hQTy1gKaeH277LKLa5ELtq4dfPDB9pe//MUFncTt1eqmMXjHHHOM7bTTTrbVVluFjr+87LLLrJw3AFnBQ3/g+/bt64KZAlT//v3dj1rqVBRQ7rzzTuvdu7dtt912rhVWwUPd5gpfflFg0HK13io8vvvuu/4qdztmzBg766yzXKvuCy+84EKeunwVnHbffXc35KBly5ZuKIJCqOp5+eWXXV1jx441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mDEjfp6J53LjjTdaPe8jWPySeF1anuo8/P24RQCB4iWg8Zvrl/zv/99sz275N2Nso/f/EAUBBNIL8DFM6Y0i3eKnn36yRx55xIXPChUq2CuvvGK9e/e2Dz74wJo0aWILFiywBx980AVDBa/LL7/catas6ZYrDB133HHWtGlTe/LJJ91+Oll1oX/22Wd2zz33FDr3AQMGuC7vHXbYwXTcQw891C666CLTcgW9V1991dq2betaQ5977jkXUlWHH46137333ms///yz9ejRw4VXnYvC3R133GGtWrUqdDw96NWrl+vqrlOnjjvn+++/38aOHet+FPaqVq1qJ510Uny/F1980WJed9bdd9/tjqXW0B133NEdU8tee+01F4Zr165t48ePt+7du9tBBx1kffr0ccFV4bNGjRounD/11FMuWCtQN27c2ObPn2/Nmze322+/PX483dE+qqdBgwa2yPusP4V67Zt4LhdccIH17NnTPS/Jrks+YedRvXr1+DE//fTT+BsGPecUBBDYsgJrf/3fG+zNOpNy5W3t/IVWpUnjzaqGnREoCwL89SsGz/Ivv/zigpUCpVrdNNbwjTfesEqVKtnAgQPtnXfesSuvvNIeffRRFxovvfRSF6xOPfXUjM9eoU5d8Qq7CmNqZTzzzDPt2muvtbPPPtu++uoru/DCC23cuHHxOhWyFIIVNtWKqCCn7vpq1arZpEmTXEBToOvfv78LsYkBVF35CsLq6q5SpYq7xtdff93+9a9/2ZgxY6x169bWoUOH+PF057LLLrN33303PiRAyw4++GAXwuWkIPfss89qsb300kuuG18BVEUtmC+//LIVFBTYJZdcYiNHjnRBb6eddnIBWS2WCvdqpQwWnctZZ51lxx9/vFt88cUXu+tMdi7aINV1aX2y81Brr1/uu+8+F3r1uHLlyv5ibhFAYAsJrAv0Pm3OKZSrWOGPGfQE0M1hZN8yIkAXfDF4ohUIt956aytXrpxrLVSrmFoK1eL39ddfuxZNBUiFQ7VaqiiItWnTJuOzVyi77rrr7Ntvv7WHH37Y7rrrLtfSqFAWVnQ8PzjpnNq1a2caB6nSqFEj15qo+9ttt90moU7Ltf+BBx7owqceH3744e5aFGaLUvbdd18XKtUS2qlTJ9dKfOedd7qgGpwkdMABB7jtVPe2227rzkkhV+fRuXNnU6uuWowV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Vc96b1C/X5YsWWLz5s3zH8Zvk9WtOoLnoHPUuWrZtGnT3DnrsV8S69ZxV65c6faZMWOGbdy40d80fqv106dP32Td4sWLbfLkye464hv/eWfmzJluuc5Z56IfnVuwLF261GKxWHAR9xFAoJgJLPxwiG0M/B+S6vRi69bZgnfft42b0fOSqn7WIVAWBJiEVBae5QyvsU+fPi54Llq0yBSa9txzT9uwYYMpgP366692++232z777GMDBgywvn372g477GA//fSTHXroodatWzd3lKeeesree+8923HHHV3ge/jhh031KthNnDjRjjrqKOvUqZPdc889tsxrcdBxVM+9995r5cuXD637ySeftMaNG9tZZ53ljnP33Xdb+/btrUKFCi4cqq5GjRrZ9ttvn7Tun3/+2f7zn/+4AKx6FJ51bs2aNXP1DRs2zNQSqutVWHz88cetSpUq1r17dxeSa9eubePHj3ePDzroIGdy+eWXW82aNW3BggVWr149O+6449zxH3zwQevfv7+rV2H3n//8p7366qvusf4ZOnSos9F9XTMFAQS2vMDSYV/axoQ3j6nOqsD7v2flTz9brf1apNqMdQggECJAAA2BKauL1dL49NNPu2B44oknumCpWwWoTz75xPbee28bNWqUqdtbQU7B9Mwzz7Rrr73WNJZS4fP111934e2FF16w4cOHO0oFu4EDB7pwd+edd1qTJk2sR48eLhBeffXV9s0331jr1q1D6w57PhRCP/zwQxf+WrZs6UJysrqrVavmWkoVnBU633nnHbv//vutV69erupKlSrZE088YeXKlbPzzz/ffvjhB2vYsKFVr17dnn32WbfNSy+9ZIMGDTIF0EcffdQF70svvdS1eJ566qlum/3228+1sirw7rbbbm77o48+2goKCuKXoPA9depU91ghl4IAAlteYO2ixUU+ifVeVzwFAQSyE6ALPju3UruXWjgVlurWrWsKbW3btnXXWr9+fdfSp3XXXXedffvtt64F8a677nKhcp3XJaXWUIVIP1R17tzZtXiqghYtWrh6FfDGjRvnWi+1XC2Y7dq1s48//titD6tb22ZSwurWvtttt501+7PF88ADDzSFRAVjlX333deFT93feeedTa3AasVVa+0rr7xiCs3vvvtufBiAjqOWXxWF1DZt2rj78jn22GNt8ODBzkW3ehwsqk/B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3u9PmzYtiuqLVOcJJ5xgQ4YMsQYNGlitWrWKtC8blywBveYeeOABF84yOfNHH300/ruhNygffPBBJrul3Ub1HHPMMWm3S7VB8NwSt5szZ477/dJxhg4d6n5ef/1169y5s+2yyy6mgBpFUchV8KUUXSCatwRFPw/2QAABBPImUK5cOevSpYt99913VqVKlbwdtzgcaPXq1TZlyhQXLI499tjicEqcQ0QCCmWDBg1yAfTWW291rd41atTI+GgDBw7MeNt0G44dO9ZWrVqVbrPNXv/UU09ZixYt4vVMnz7dWrZsaffcc48pwFKKjwAtoMXnueBMEEAgTwKXXXaZ65q7+eabQ484bNgwu+666wqtf+edd9wfcS1Ui+Yll1xikyZNctt16NDBdbFv2LDB3n//fTvjjDPsqquush9++KFQHfPnzzcdX+Hv9ttvNwXCYFEoVr1HHXWUXX311aYQ4ZeePXvaRx99ZP/4xz+sU6dONmHCBH9Vodvhw4e7lp8jjzzSnYO6UVVmzJhh//d//+fuP/nkk6F/kDVE4ZZbbjFdk4KLLPTYL+pKlZ1atM477zz75JNP/FVxF9Vx/fXX29FHH22XX375Ji1QL774ojM68cQTXav0+vXr43UsXbrUbrrpJmdw5plnui7kWCwWX8+dzAReeOEF23HHHe3vf/+7lS9f3nWpJ+45ePBgu+iii+z00093YTW4XoFNraAq6X4ftM2YMWPsggsusL/+9a/uNTxy5Egtdl3ib775ps2aNcstX7JkiVue6rWuDVKdm6sgg3+aNm3quse///77pFurJ0S/j/q9DRb97un3SEWvZT3W6/3UU0+1+++/39auXRvc3N3X77J+d/UGzy/+Nes17Zd01+1vV9pvCaCl/Rnm+hBAYBMBjYdTV7x+/D8yiRv9/PPP8T++/rrRo0fbgAED3EP9wdLYOgUs/XFv27at3Xfffe6PlMLagQceaJMnT7aTTz7Z393dXnjhhbZs2TJTOHz66acLdUt++umn7o/lypUrXSD4+uuvbZ999omHUIXPv/3tb6bz0DbJWrPee+89O+SQQ9wxOnbsaF9++aUb76o/otWqVXOtQTqR3Xff3XVNFjo578GiRYtcgFAXvcKhxtSpy17dmSpqxdK40Q8//NBOOukk09i64447zvr27evW+y4Kr/PmzXN1KKAqUPtFwfzaa691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" class="img-fluid" width="672"></p>
 </div>
 </div>
 </section>
@@ -3448,7 +3524,7 @@ vertical-align: -.125em;
 <div class="cell">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a>ekegg <span class="ot">&lt;-</span> <span class="fu">enrich_kegg_readable</span>(deaf1_annot<span class="sc">$</span>geneId, <span class="at">title =</span> <span class="st">&quot;KEGG enrichment&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1"></a>ekegg <span class="ot">&lt;-</span> <span class="fu">enrich_kegg_readable</span>(deaf1_annot<span class="sc">$</span>geneId, <span class="at">title =</span> <span class="st">&quot;KEGG enrichment&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stderr">
 <pre><code>Reading KEGG annotation online: &quot;https://rest.kegg.jp/link/mmu/pathway&quot;...</code></pre>
@@ -3466,7 +3542,7 @@ vertical-align: -.125em;
 <div class="cell">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1"></a><span class="fu">dim</span>(ekegg)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1"></a><span class="fu">dim</span>(ekegg)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 14  9</code></pre>
@@ -3475,7 +3551,7 @@ vertical-align: -.125em;
 <div class="cell">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1"></a>ekegg</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1"></a>ekegg</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div class="kable-table">
@@ -3683,13 +3759,13 @@ vertical-align: -.125em;
 <div class="cell">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1"></a><span class="fu">write.csv</span>(ekegg, <span class="at">file =</span> <span class="fu">paste0</span>(output_dir, <span class="st">&quot;deaf1_kegg_all.csv&quot;</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1"></a><span class="fu">write.csv</span>(ekegg, <span class="at">file =</span> <span class="fu">paste0</span>(output_dir, <span class="st">&quot;deaf1_kegg_all.csv&quot;</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <div class="cell">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1"></a><span class="fu">sessionInfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1"></a><span class="fu">sessionInfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>R version 4.2.2 (2022-10-31)
@@ -4042,237 +4118,293 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
 });
 </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class>
-<div class="sourceCode" id="cb24" data-shortcodes="false"><pre class="sourceCode numberSource markdown number-lines code-with-copy"><code class="sourceCode markdown"><span id="cb24-1"><a href="#cb24-1"></a><span class="co">---</span></span>
-<span id="cb24-2"><a href="#cb24-2"></a><span class="an">title:</span><span class="co"> 02_GO</span></span>
-<span id="cb24-3"><a href="#cb24-3"></a><span class="an">author:</span><span class="co"> Qian Hui TAN</span></span>
-<span id="cb24-4"><a href="#cb24-4"></a><span class="an">date:</span><span class="co"> &#39;`r format(Sys.time(), &quot;%d %B %Y&quot;)`&#39;</span></span>
-<span id="cb24-5"><a href="#cb24-5"></a><span class="an">format:</span></span>
-<span id="cb24-6"><a href="#cb24-6"></a><span class="co">  html: </span></span>
-<span id="cb24-7"><a href="#cb24-7"></a><span class="co">    keep-md: true</span></span>
-<span id="cb24-8"><a href="#cb24-8"></a><span class="co">    embed-resources: true</span></span>
-<span id="cb24-9"><a href="#cb24-9"></a><span class="co">    df-print: kable</span></span>
-<span id="cb24-10"><a href="#cb24-10"></a><span class="co">    toc: true</span></span>
-<span id="cb24-11"><a href="#cb24-11"></a><span class="co">    toc-depth: 3</span></span>
-<span id="cb24-12"><a href="#cb24-12"></a><span class="co">    code-fold: true</span></span>
-<span id="cb24-13"><a href="#cb24-13"></a><span class="co">    number-sections: true</span></span>
-<span id="cb24-14"><a href="#cb24-14"></a><span class="co">    smooth-scroll: true</span></span>
-<span id="cb24-15"><a href="#cb24-15"></a><span class="co">    code-tools: true</span></span>
-<span id="cb24-16"><a href="#cb24-16"></a><span class="co">    code-line-numbers: true</span></span>
-<span id="cb24-17"><a href="#cb24-17"></a><span class="co">  gfm: </span></span>
-<span id="cb24-18"><a href="#cb24-18"></a><span class="co">    df-print: kable</span></span>
-<span id="cb24-19"><a href="#cb24-19"></a><span class="co">    toc: true </span></span>
-<span id="cb24-20"><a href="#cb24-20"></a><span class="co">    toc-depth: 3</span></span>
-<span id="cb24-21"><a href="#cb24-21"></a><span class="co">    number-sections: true</span></span>
-<span id="cb24-22"><a href="#cb24-22"></a><span class="co">---</span></span>
-<span id="cb24-23"><a href="#cb24-23"></a></span>
-<span id="cb24-24"><a href="#cb24-24"></a></span>
-<span id="cb24-25"><a href="#cb24-25"></a><span class="fu"># Introduction </span></span>
-<span id="cb24-26"><a href="#cb24-26"></a></span>
-<span id="cb24-27"><a href="#cb24-27"></a>In this notebook, we perform Gene Ontology (GO) enrichment for the Deaf1-bound peaks. </span>
-<span id="cb24-28"><a href="#cb24-28"></a></span>
-<span id="cb24-29"><a href="#cb24-29"></a><span class="fu"># Setup</span></span>
-<span id="cb24-30"><a href="#cb24-30"></a></span>
-<span id="cb24-33"><a href="#cb24-33"></a><span class="in">```{r}</span></span>
-<span id="cb24-34"><a href="#cb24-34"></a><span class="cf">if</span>(<span class="sc">!</span><span class="fu">dir.exists</span>(<span class="st">&quot;./figures&quot;</span>)){</span>
-<span id="cb24-35"><a href="#cb24-35"></a>    <span class="fu">dir.create</span>(<span class="st">&quot;./figures&quot;</span>)</span>
-<span id="cb24-36"><a href="#cb24-36"></a>  }</span>
-<span id="cb24-37"><a href="#cb24-37"></a></span>
-<span id="cb24-38"><a href="#cb24-38"></a><span class="do">## If output directory doesn&#39;t exist, create it</span></span>
-<span id="cb24-39"><a href="#cb24-39"></a><span class="cf">if</span>(<span class="sc">!</span><span class="fu">dir.exists</span>(<span class="st">&quot;./output&quot;</span>)){</span>
-<span id="cb24-40"><a href="#cb24-40"></a>    <span class="fu">dir.create</span>(<span class="st">&quot;./output&quot;</span>)</span>
-<span id="cb24-41"><a href="#cb24-41"></a>  }</span>
-<span id="cb24-42"><a href="#cb24-42"></a>  </span>
-<span id="cb24-43"><a href="#cb24-43"></a>output_dir <span class="ot">&lt;-</span> <span class="st">&quot;./output/&quot;</span></span>
-<span id="cb24-44"><a href="#cb24-44"></a><span class="in">```</span></span>
-<span id="cb24-45"><a href="#cb24-45"></a></span>
-<span id="cb24-46"><a href="#cb24-46"></a></span>
-<span id="cb24-47"><a href="#cb24-47"></a><span class="in">```{r global_options, echo=FALSE}</span></span>
-<span id="cb24-48"><a href="#cb24-48"></a>knitr<span class="sc">::</span>opts_chunk<span class="sc">$</span><span class="fu">set</span>(<span class="at">fig.path=</span><span class="st">&#39;./figures/&#39;</span>,</span>
-<span id="cb24-49"><a href="#cb24-49"></a>                      <span class="at">dev =</span> <span class="fu">c</span>(<span class="st">&quot;png&quot;</span>))</span>
-<span id="cb24-50"><a href="#cb24-50"></a><span class="in">```</span></span>
-<span id="cb24-51"><a href="#cb24-51"></a></span>
-<span id="cb24-52"><a href="#cb24-52"></a><span class="fu">## Load libraries</span></span>
-<span id="cb24-53"><a href="#cb24-53"></a></span>
-<span id="cb24-56"><a href="#cb24-56"></a><span class="in">```{r}</span></span>
-<span id="cb24-57"><a href="#cb24-57"></a><span class="fu">suppressPackageStartupMessages</span>({</span>
-<span id="cb24-58"><a href="#cb24-58"></a>    <span class="co"># Load libraries</span></span>
-<span id="cb24-59"><a href="#cb24-59"></a>    <span class="fu">library</span>(clusterProfiler)</span>
-<span id="cb24-60"><a href="#cb24-60"></a>    <span class="fu">library</span>(org.Mm.eg.db)</span>
-<span id="cb24-61"><a href="#cb24-61"></a>    <span class="fu">library</span>(ggplot2)</span>
-<span id="cb24-62"><a href="#cb24-62"></a>})</span>
-<span id="cb24-63"><a href="#cb24-63"></a><span class="in">```</span></span>
-<span id="cb24-64"><a href="#cb24-64"></a></span>
-<span id="cb24-65"><a href="#cb24-65"></a></span>
-<span id="cb24-66"><a href="#cb24-66"></a></span>
-<span id="cb24-67"><a href="#cb24-67"></a><span class="fu">## Read in files</span></span>
-<span id="cb24-68"><a href="#cb24-68"></a></span>
-<span id="cb24-71"><a href="#cb24-71"></a><span class="in">```{r}</span></span>
-<span id="cb24-72"><a href="#cb24-72"></a>deaf1_annot <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">&quot;../01_QC/output/deaf1_annot.csv&quot;</span>)</span>
-<span id="cb24-73"><a href="#cb24-73"></a><span class="in">```</span></span>
-<span id="cb24-74"><a href="#cb24-74"></a></span>
-<span id="cb24-75"><a href="#cb24-75"></a></span>
-<span id="cb24-76"><a href="#cb24-76"></a><span class="fu">## Load functions</span></span>
-<span id="cb24-77"><a href="#cb24-77"></a></span>
-<span id="cb24-80"><a href="#cb24-80"></a><span class="in">```{r}</span></span>
-<span id="cb24-81"><a href="#cb24-81"></a>custom_ego <span class="ot">&lt;-</span> <span class="cf">function</span>(interesting_pathways, </span>
-<span id="cb24-82"><a href="#cb24-82"></a>                       ego_tibble,</span>
-<span id="cb24-83"><a href="#cb24-83"></a>                       <span class="at">title =</span> <span class="st">&quot;title&quot;</span>, </span>
-<span id="cb24-84"><a href="#cb24-84"></a>                       <span class="at">font_size =</span> <span class="dv">14</span>) {</span>
-<span id="cb24-85"><a href="#cb24-85"></a>  </span>
-<span id="cb24-86"><a href="#cb24-86"></a>  <span class="co"># Get relevant columns</span></span>
-<span id="cb24-87"><a href="#cb24-87"></a>  interesting_egos <span class="ot">&lt;-</span> ego_tibble<span class="sc">%&gt;%</span> </span>
-<span id="cb24-88"><a href="#cb24-88"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="st">&quot;Description&quot;</span>, <span class="st">&quot;GeneRatio&quot;</span>, <span class="st">&quot;p.adjust&quot;</span>, <span class="st">&quot;Count&quot;</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb24-89"><a href="#cb24-89"></a>    <span class="fu">filter</span>(Description <span class="sc">%in%</span> interesting_pathways) <span class="sc">%&gt;%</span> </span>
-<span id="cb24-90"><a href="#cb24-90"></a>    <span class="co"># Convert GeneRatio from fraction to decimal</span></span>
-<span id="cb24-91"><a href="#cb24-91"></a>    <span class="fu">mutate</span>(<span class="at">GeneRatio =</span> DOSE<span class="sc">::</span><span class="fu">parse_ratio</span>(GeneRatio)) <span class="sc">%&gt;%</span> </span>
-<span id="cb24-92"><a href="#cb24-92"></a>    <span class="fu">arrange</span>(GeneRatio) <span class="sc">%&gt;%</span> </span>
-<span id="cb24-93"><a href="#cb24-93"></a>    <span class="co"># Preserve sorted order</span></span>
-<span id="cb24-94"><a href="#cb24-94"></a>    <span class="fu">mutate</span>(<span class="at">Description =</span> <span class="fu">factor</span>(Description, <span class="at">levels =</span> <span class="fu">unique</span>(Description)))</span>
-<span id="cb24-95"><a href="#cb24-95"></a>  </span>
-<span id="cb24-96"><a href="#cb24-96"></a>  </span>
-<span id="cb24-97"><a href="#cb24-97"></a>  <span class="co"># Plot</span></span>
-<span id="cb24-98"><a href="#cb24-98"></a>  df_plot <span class="ot">&lt;-</span> ggplot2<span class="sc">::</span><span class="fu">ggplot</span>(interesting_egos, </span>
-<span id="cb24-99"><a href="#cb24-99"></a>                    <span class="fu">aes</span>(<span class="at">x =</span> GeneRatio, <span class="at">y =</span> Description,</span>
-<span id="cb24-100"><a href="#cb24-100"></a>                        <span class="at">color =</span> p.adjust)) <span class="sc">+</span></span>
-<span id="cb24-101"><a href="#cb24-101"></a>    <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">size =</span> Count)) <span class="sc">+</span></span>
-<span id="cb24-102"><a href="#cb24-102"></a>    <span class="fu">scale_color_gradient2</span>(<span class="at">low =</span> <span class="st">&quot;red&quot;</span>, </span>
-<span id="cb24-103"><a href="#cb24-103"></a>                          <span class="at">mid =</span> <span class="st">&quot;white&quot;</span>, </span>
-<span id="cb24-104"><a href="#cb24-104"></a>                          <span class="at">high =</span> <span class="st">&quot;white&quot;</span>,</span>
-<span id="cb24-105"><a href="#cb24-105"></a>                          <span class="at">midpoint =</span> <span class="fl">0.5</span>, </span>
-<span id="cb24-106"><a href="#cb24-106"></a>                         <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>)) <span class="sc">+</span></span>
-<span id="cb24-107"><a href="#cb24-107"></a>    <span class="fu">scale_size_continuous</span>(<span class="at">range  =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">25</span>), </span>
-<span id="cb24-108"><a href="#cb24-108"></a>                        <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">25</span>), </span>
-<span id="cb24-109"><a href="#cb24-109"></a>                        <span class="at">breaks =</span> <span class="fu">c</span>(<span class="fu">seq</span>(<span class="dv">10</span>, <span class="dv">25</span>, <span class="dv">5</span>))) <span class="sc">+</span></span>
-<span id="cb24-110"><a href="#cb24-110"></a>    <span class="fu">labs</span>(</span>
-<span id="cb24-111"><a href="#cb24-111"></a>      <span class="at">title =</span> title,</span>
-<span id="cb24-112"><a href="#cb24-112"></a>      <span class="at">y =</span> <span class="st">&quot;&quot;</span>) <span class="sc">+</span></span>
-<span id="cb24-113"><a href="#cb24-113"></a>    <span class="fu">theme_light</span>() <span class="sc">+</span></span>
-<span id="cb24-114"><a href="#cb24-114"></a>    <span class="fu">theme</span>(<span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> font_size))</span>
-<span id="cb24-115"><a href="#cb24-115"></a>  </span>
-<span id="cb24-116"><a href="#cb24-116"></a>  <span class="fu">return</span>(df_plot)</span>
-<span id="cb24-117"><a href="#cb24-117"></a>  </span>
-<span id="cb24-118"><a href="#cb24-118"></a>}</span>
-<span id="cb24-119"><a href="#cb24-119"></a></span>
-<span id="cb24-120"><a href="#cb24-120"></a><span class="in">```</span></span>
-<span id="cb24-121"><a href="#cb24-121"></a></span>
-<span id="cb24-122"><a href="#cb24-122"></a></span>
-<span id="cb24-125"><a href="#cb24-125"></a><span class="in">```{r}</span></span>
-<span id="cb24-126"><a href="#cb24-126"></a><span class="co"># Takes a character vector of entrez gene IDs as input, runs KEGG enrichment.</span></span>
-<span id="cb24-127"><a href="#cb24-127"></a><span class="co"># Prints out a kegg dotplot and saves a readable kegg enrichment as a data frame.</span></span>
-<span id="cb24-128"><a href="#cb24-128"></a></span>
-<span id="cb24-129"><a href="#cb24-129"></a>enrich_kegg_readable <span class="ot">&lt;-</span> <span class="cf">function</span>(target_genes_entrez, </span>
-<span id="cb24-130"><a href="#cb24-130"></a>                                 <span class="co">#universe, </span></span>
-<span id="cb24-131"><a href="#cb24-131"></a>                                 <span class="at">title =</span> <span class="st">&quot;title&quot;</span>){</span>
-<span id="cb24-132"><a href="#cb24-132"></a>    </span>
-<span id="cb24-133"><a href="#cb24-133"></a>    <span class="co"># Run KEGG enrichment</span></span>
-<span id="cb24-134"><a href="#cb24-134"></a>    ekegg <span class="ot">=</span> clusterProfiler<span class="sc">::</span><span class="fu">enrichKEGG</span>(target_genes_entrez,</span>
-<span id="cb24-135"><a href="#cb24-135"></a>                                       <span class="co"># universe = as.character(universe), </span></span>
-<span id="cb24-136"><a href="#cb24-136"></a>                                       <span class="at">organism =</span> <span class="st">&quot;mmu&quot;</span>,</span>
-<span id="cb24-137"><a href="#cb24-137"></a>                                       <span class="at">keyType =</span> <span class="st">&quot;ncbi-geneid&quot;</span>)</span>
-<span id="cb24-138"><a href="#cb24-138"></a>    </span>
-<span id="cb24-139"><a href="#cb24-139"></a>    <span class="co"># Print the kegg dotplot</span></span>
-<span id="cb24-140"><a href="#cb24-140"></a>    <span class="fu">print</span>(<span class="fu">dotplot</span>(ekegg, <span class="at">title =</span> title))</span>
-<span id="cb24-141"><a href="#cb24-141"></a>    </span>
-<span id="cb24-142"><a href="#cb24-142"></a>    <span class="co"># Convert entrez to gene symbols</span></span>
-<span id="cb24-143"><a href="#cb24-143"></a>    ekegg <span class="ot">=</span> DOSE<span class="sc">::</span><span class="fu">setReadable</span>(ekegg, <span class="at">OrgDb =</span> <span class="st">&quot;org.Mm.eg.db&quot;</span>, </span>
-<span id="cb24-144"><a href="#cb24-144"></a>                              <span class="at">keyType =</span> <span class="st">&quot;ENTREZID&quot;</span>)</span>
-<span id="cb24-145"><a href="#cb24-145"></a>    </span>
-<span id="cb24-146"><a href="#cb24-146"></a>    <span class="co"># Return the result as a data frame</span></span>
-<span id="cb24-147"><a href="#cb24-147"></a>    <span class="fu">return</span>(<span class="fu">as.data.frame</span>(ekegg))</span>
-<span id="cb24-148"><a href="#cb24-148"></a>    </span>
-<span id="cb24-149"><a href="#cb24-149"></a>}</span>
-<span id="cb24-150"><a href="#cb24-150"></a><span class="in">```</span></span>
-<span id="cb24-151"><a href="#cb24-151"></a></span>
-<span id="cb24-152"><a href="#cb24-152"></a></span>
-<span id="cb24-153"><a href="#cb24-153"></a><span class="fu"># GO Enrichment analysis</span></span>
-<span id="cb24-154"><a href="#cb24-154"></a></span>
-<span id="cb24-157"><a href="#cb24-157"></a><span class="in">```{r}</span></span>
-<span id="cb24-158"><a href="#cb24-158"></a><span class="co"># Run GO enrichment analysis </span></span>
-<span id="cb24-159"><a href="#cb24-159"></a>ego <span class="ot">&lt;-</span> <span class="fu">enrichGO</span>(<span class="at">gene =</span> deaf1_annot<span class="sc">$</span>geneId, </span>
-<span id="cb24-160"><a href="#cb24-160"></a>                    <span class="at">keyType =</span> <span class="st">&quot;ENTREZID&quot;</span>, </span>
-<span id="cb24-161"><a href="#cb24-161"></a>                    <span class="at">OrgDb =</span> org.Mm.eg.db, </span>
-<span id="cb24-162"><a href="#cb24-162"></a>                    <span class="at">ont =</span> <span class="st">&quot;BP&quot;</span>, </span>
-<span id="cb24-163"><a href="#cb24-163"></a>                    <span class="at">pAdjustMethod =</span> <span class="st">&quot;BH&quot;</span>, </span>
-<span id="cb24-164"><a href="#cb24-164"></a>                    <span class="at">qvalueCutoff =</span> <span class="fl">0.05</span>, </span>
-<span id="cb24-165"><a href="#cb24-165"></a>                    <span class="at">readable =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb24-166"><a href="#cb24-166"></a><span class="in">```</span></span>
-<span id="cb24-167"><a href="#cb24-167"></a></span>
-<span id="cb24-170"><a href="#cb24-170"></a><span class="in">```{r}</span></span>
-<span id="cb24-171"><a href="#cb24-171"></a><span class="co"># Output results from GO analysis to a table</span></span>
-<span id="cb24-172"><a href="#cb24-172"></a>df_ego <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(ego)</span>
-<span id="cb24-173"><a href="#cb24-173"></a></span>
-<span id="cb24-174"><a href="#cb24-174"></a><span class="fu">dim</span>(df_ego)</span>
-<span id="cb24-175"><a href="#cb24-175"></a><span class="fu">head</span>(df_ego)</span>
-<span id="cb24-176"><a href="#cb24-176"></a><span class="in">```</span></span>
-<span id="cb24-177"><a href="#cb24-177"></a></span>
-<span id="cb24-180"><a href="#cb24-180"></a><span class="in">```{r}</span></span>
-<span id="cb24-181"><a href="#cb24-181"></a><span class="fu">write.csv</span>(df_ego, <span class="st">&quot;output/deaf1_ego_all.csv&quot;</span>)</span>
-<span id="cb24-182"><a href="#cb24-182"></a><span class="in">```</span></span>
-<span id="cb24-183"><a href="#cb24-183"></a></span>
-<span id="cb24-184"><a href="#cb24-184"></a><span class="fu">## Default GO plot</span></span>
-<span id="cb24-185"><a href="#cb24-185"></a></span>
-<span id="cb24-188"><a href="#cb24-188"></a><span class="in">```{r}</span></span>
-<span id="cb24-189"><a href="#cb24-189"></a><span class="co">#| label: go-plot</span></span>
-<span id="cb24-190"><a href="#cb24-190"></a><span class="co">#| fig-height: 10</span></span>
-<span id="cb24-191"><a href="#cb24-191"></a><span class="co">#| fig-width: 5</span></span>
-<span id="cb24-192"><a href="#cb24-192"></a></span>
-<span id="cb24-193"><a href="#cb24-193"></a></span>
-<span id="cb24-194"><a href="#cb24-194"></a><span class="co"># Dotplot visualization</span></span>
-<span id="cb24-195"><a href="#cb24-195"></a>ego_plot <span class="ot">&lt;-</span> <span class="fu">dotplot</span>(ego, <span class="at">showCategory=</span><span class="dv">10</span>,</span>
-<span id="cb24-196"><a href="#cb24-196"></a>                    <span class="at">title =</span> <span class="st">&quot;GO enrichment&quot;</span>)</span>
-<span id="cb24-197"><a href="#cb24-197"></a></span>
-<span id="cb24-198"><a href="#cb24-198"></a>ego_plot</span>
-<span id="cb24-199"><a href="#cb24-199"></a><span class="in">```</span></span>
-<span id="cb24-200"><a href="#cb24-200"></a></span>
-<span id="cb24-201"><a href="#cb24-201"></a><span class="fu">## Custom GO</span></span>
-<span id="cb24-202"><a href="#cb24-202"></a></span>
-<span id="cb24-203"><a href="#cb24-203"></a></span>
-<span id="cb24-206"><a href="#cb24-206"></a><span class="in">```{r}</span></span>
-<span id="cb24-207"><a href="#cb24-207"></a><span class="co">#| label: custom-ego</span></span>
-<span id="cb24-208"><a href="#cb24-208"></a></span>
-<span id="cb24-209"><a href="#cb24-209"></a>interesting_pathways <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;DNA-templated transcription initiation&quot;</span>, </span>
-<span id="cb24-210"><a href="#cb24-210"></a>                          <span class="st">&quot;regulation of translation&quot;</span>, </span>
-<span id="cb24-211"><a href="#cb24-211"></a>                          <span class="st">&quot;macroautophagy&quot;</span>, </span>
-<span id="cb24-212"><a href="#cb24-212"></a>                          <span class="st">&quot;stem cell population maintenance&quot;</span>)</span>
-<span id="cb24-213"><a href="#cb24-213"></a></span>
-<span id="cb24-214"><a href="#cb24-214"></a><span class="fu">custom_ego</span>(interesting_pathways, </span>
-<span id="cb24-215"><a href="#cb24-215"></a>           df_ego, </span>
-<span id="cb24-216"><a href="#cb24-216"></a>           <span class="at">title =</span> <span class="st">&quot;GO enrichments&quot;</span>)</span>
-<span id="cb24-217"><a href="#cb24-217"></a><span class="in">```</span></span>
-<span id="cb24-218"><a href="#cb24-218"></a></span>
-<span id="cb24-219"><a href="#cb24-219"></a></span>
-<span id="cb24-222"><a href="#cb24-222"></a><span class="in">```{r}</span></span>
-<span id="cb24-223"><a href="#cb24-223"></a>df_ego <span class="sc">%&gt;%</span> </span>
-<span id="cb24-224"><a href="#cb24-224"></a>  <span class="fu">filter</span>(Description <span class="sc">%in%</span> interesting_pathways)</span>
-<span id="cb24-225"><a href="#cb24-225"></a><span class="in">```</span></span>
-<span id="cb24-226"><a href="#cb24-226"></a></span>
-<span id="cb24-227"><a href="#cb24-227"></a></span>
-<span id="cb24-228"><a href="#cb24-228"></a><span class="fu"># KEGG enrichment</span></span>
-<span id="cb24-229"><a href="#cb24-229"></a></span>
-<span id="cb24-230"><a href="#cb24-230"></a></span>
-<span id="cb24-233"><a href="#cb24-233"></a><span class="in">```{r}</span></span>
-<span id="cb24-234"><a href="#cb24-234"></a><span class="co">#| label: kegg</span></span>
-<span id="cb24-235"><a href="#cb24-235"></a><span class="co">#| fig-height: 5</span></span>
-<span id="cb24-236"><a href="#cb24-236"></a></span>
-<span id="cb24-237"><a href="#cb24-237"></a>ekegg <span class="ot">&lt;-</span> <span class="fu">enrich_kegg_readable</span>(deaf1_annot<span class="sc">$</span>geneId, <span class="at">title =</span> <span class="st">&quot;KEGG enrichment&quot;</span>)</span>
-<span id="cb24-238"><a href="#cb24-238"></a><span class="in">```</span></span>
-<span id="cb24-239"><a href="#cb24-239"></a></span>
-<span id="cb24-242"><a href="#cb24-242"></a><span class="in">```{r}</span></span>
-<span id="cb24-243"><a href="#cb24-243"></a><span class="fu">dim</span>(ekegg)</span>
-<span id="cb24-244"><a href="#cb24-244"></a><span class="in">```</span></span>
-<span id="cb24-245"><a href="#cb24-245"></a></span>
-<span id="cb24-248"><a href="#cb24-248"></a><span class="in">```{r}</span></span>
-<span id="cb24-249"><a href="#cb24-249"></a>ekegg</span>
-<span id="cb24-250"><a href="#cb24-250"></a><span class="in">```</span></span>
-<span id="cb24-251"><a href="#cb24-251"></a></span>
-<span id="cb24-254"><a href="#cb24-254"></a><span class="in">```{r}</span></span>
-<span id="cb24-255"><a href="#cb24-255"></a><span class="fu">write.csv</span>(ekegg, <span class="at">file =</span> <span class="fu">paste0</span>(output_dir, <span class="st">&quot;deaf1_kegg_all.csv&quot;</span>))</span>
-<span id="cb24-256"><a href="#cb24-256"></a><span class="in">```</span></span>
-<span id="cb24-257"><a href="#cb24-257"></a></span>
-<span id="cb24-258"><a href="#cb24-258"></a></span>
-<span id="cb24-261"><a href="#cb24-261"></a><span class="in">```{r}</span></span>
-<span id="cb24-262"><a href="#cb24-262"></a><span class="fu">sessionInfo</span>()</span>
-<span id="cb24-263"><a href="#cb24-263"></a><span class="in">```</span></span>
+<div class="sourceCode" id="cb26" data-shortcodes="false"><pre class="sourceCode numberSource markdown number-lines code-with-copy"><code class="sourceCode markdown"><span id="cb26-1"><a href="#cb26-1"></a><span class="co">---</span></span>
+<span id="cb26-2"><a href="#cb26-2"></a><span class="an">title:</span><span class="co"> 02_GO</span></span>
+<span id="cb26-3"><a href="#cb26-3"></a><span class="an">author:</span><span class="co"> Qian Hui TAN</span></span>
+<span id="cb26-4"><a href="#cb26-4"></a><span class="an">date:</span><span class="co"> &#39;`r format(Sys.time(), &quot;%d %B %Y&quot;)`&#39;</span></span>
+<span id="cb26-5"><a href="#cb26-5"></a><span class="an">format:</span></span>
+<span id="cb26-6"><a href="#cb26-6"></a><span class="co">  html: </span></span>
+<span id="cb26-7"><a href="#cb26-7"></a><span class="co">    keep-md: true</span></span>
+<span id="cb26-8"><a href="#cb26-8"></a><span class="co">    embed-resources: true</span></span>
+<span id="cb26-9"><a href="#cb26-9"></a><span class="co">    df-print: kable</span></span>
+<span id="cb26-10"><a href="#cb26-10"></a><span class="co">    toc: true</span></span>
+<span id="cb26-11"><a href="#cb26-11"></a><span class="co">    toc-depth: 3</span></span>
+<span id="cb26-12"><a href="#cb26-12"></a><span class="co">    code-fold: true</span></span>
+<span id="cb26-13"><a href="#cb26-13"></a><span class="co">    number-sections: true</span></span>
+<span id="cb26-14"><a href="#cb26-14"></a><span class="co">    smooth-scroll: true</span></span>
+<span id="cb26-15"><a href="#cb26-15"></a><span class="co">    code-tools: true</span></span>
+<span id="cb26-16"><a href="#cb26-16"></a><span class="co">    code-line-numbers: true</span></span>
+<span id="cb26-17"><a href="#cb26-17"></a><span class="co">  gfm: </span></span>
+<span id="cb26-18"><a href="#cb26-18"></a><span class="co">    df-print: kable</span></span>
+<span id="cb26-19"><a href="#cb26-19"></a><span class="co">    toc: true </span></span>
+<span id="cb26-20"><a href="#cb26-20"></a><span class="co">    toc-depth: 3</span></span>
+<span id="cb26-21"><a href="#cb26-21"></a><span class="co">    number-sections: true</span></span>
+<span id="cb26-22"><a href="#cb26-22"></a><span class="co">---</span></span>
+<span id="cb26-23"><a href="#cb26-23"></a></span>
+<span id="cb26-24"><a href="#cb26-24"></a></span>
+<span id="cb26-25"><a href="#cb26-25"></a><span class="fu"># Introduction </span></span>
+<span id="cb26-26"><a href="#cb26-26"></a></span>
+<span id="cb26-27"><a href="#cb26-27"></a>In this notebook, we perform Gene Ontology (GO) enrichment for the Deaf1-bound peaks. </span>
+<span id="cb26-28"><a href="#cb26-28"></a></span>
+<span id="cb26-29"><a href="#cb26-29"></a><span class="fu"># Setup</span></span>
+<span id="cb26-30"><a href="#cb26-30"></a></span>
+<span id="cb26-33"><a href="#cb26-33"></a><span class="in">```{r}</span></span>
+<span id="cb26-34"><a href="#cb26-34"></a><span class="cf">if</span>(<span class="sc">!</span><span class="fu">dir.exists</span>(<span class="st">&quot;./figures&quot;</span>)){</span>
+<span id="cb26-35"><a href="#cb26-35"></a>    <span class="fu">dir.create</span>(<span class="st">&quot;./figures&quot;</span>)</span>
+<span id="cb26-36"><a href="#cb26-36"></a>  }</span>
+<span id="cb26-37"><a href="#cb26-37"></a></span>
+<span id="cb26-38"><a href="#cb26-38"></a><span class="do">## If output directory doesn&#39;t exist, create it</span></span>
+<span id="cb26-39"><a href="#cb26-39"></a><span class="cf">if</span>(<span class="sc">!</span><span class="fu">dir.exists</span>(<span class="st">&quot;./output&quot;</span>)){</span>
+<span id="cb26-40"><a href="#cb26-40"></a>    <span class="fu">dir.create</span>(<span class="st">&quot;./output&quot;</span>)</span>
+<span id="cb26-41"><a href="#cb26-41"></a>  }</span>
+<span id="cb26-42"><a href="#cb26-42"></a>  </span>
+<span id="cb26-43"><a href="#cb26-43"></a>output_dir <span class="ot">&lt;-</span> <span class="st">&quot;./output/&quot;</span></span>
+<span id="cb26-44"><a href="#cb26-44"></a><span class="in">```</span></span>
+<span id="cb26-45"><a href="#cb26-45"></a></span>
+<span id="cb26-46"><a href="#cb26-46"></a></span>
+<span id="cb26-47"><a href="#cb26-47"></a><span class="in">```{r global_options, echo=FALSE}</span></span>
+<span id="cb26-48"><a href="#cb26-48"></a>knitr<span class="sc">::</span>opts_chunk<span class="sc">$</span><span class="fu">set</span>(<span class="at">fig.path=</span><span class="st">&#39;./figures/&#39;</span>,</span>
+<span id="cb26-49"><a href="#cb26-49"></a>                      <span class="at">dev =</span> <span class="fu">c</span>(<span class="st">&quot;png&quot;</span>))</span>
+<span id="cb26-50"><a href="#cb26-50"></a><span class="in">```</span></span>
+<span id="cb26-51"><a href="#cb26-51"></a></span>
+<span id="cb26-52"><a href="#cb26-52"></a><span class="fu">## Load libraries</span></span>
+<span id="cb26-53"><a href="#cb26-53"></a></span>
+<span id="cb26-56"><a href="#cb26-56"></a><span class="in">```{r}</span></span>
+<span id="cb26-57"><a href="#cb26-57"></a><span class="fu">suppressPackageStartupMessages</span>({</span>
+<span id="cb26-58"><a href="#cb26-58"></a>    <span class="co"># Load libraries</span></span>
+<span id="cb26-59"><a href="#cb26-59"></a>    <span class="fu">library</span>(clusterProfiler)</span>
+<span id="cb26-60"><a href="#cb26-60"></a>    <span class="fu">library</span>(org.Mm.eg.db)</span>
+<span id="cb26-61"><a href="#cb26-61"></a>    <span class="fu">library</span>(ggplot2)</span>
+<span id="cb26-62"><a href="#cb26-62"></a>})</span>
+<span id="cb26-63"><a href="#cb26-63"></a><span class="in">```</span></span>
+<span id="cb26-64"><a href="#cb26-64"></a></span>
+<span id="cb26-65"><a href="#cb26-65"></a></span>
+<span id="cb26-66"><a href="#cb26-66"></a></span>
+<span id="cb26-67"><a href="#cb26-67"></a><span class="fu">## Read in files</span></span>
+<span id="cb26-68"><a href="#cb26-68"></a></span>
+<span id="cb26-71"><a href="#cb26-71"></a><span class="in">```{r}</span></span>
+<span id="cb26-72"><a href="#cb26-72"></a>deaf1_annot <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">&quot;../01_QC/output/deaf1_annot.csv&quot;</span>)</span>
+<span id="cb26-73"><a href="#cb26-73"></a><span class="in">```</span></span>
+<span id="cb26-74"><a href="#cb26-74"></a></span>
+<span id="cb26-75"><a href="#cb26-75"></a></span>
+<span id="cb26-76"><a href="#cb26-76"></a><span class="fu">## Load functions</span></span>
+<span id="cb26-77"><a href="#cb26-77"></a></span>
+<span id="cb26-80"><a href="#cb26-80"></a><span class="in">```{r}</span></span>
+<span id="cb26-81"><a href="#cb26-81"></a>custom_ego <span class="ot">&lt;-</span> <span class="cf">function</span>(interesting_pathways, </span>
+<span id="cb26-82"><a href="#cb26-82"></a>                       ego_tibble,</span>
+<span id="cb26-83"><a href="#cb26-83"></a>                       <span class="at">title =</span> <span class="st">&quot;title&quot;</span>, </span>
+<span id="cb26-84"><a href="#cb26-84"></a>                       <span class="at">font_size =</span> <span class="dv">14</span>) {</span>
+<span id="cb26-85"><a href="#cb26-85"></a>  </span>
+<span id="cb26-86"><a href="#cb26-86"></a>  <span class="co"># Get relevant columns</span></span>
+<span id="cb26-87"><a href="#cb26-87"></a>  interesting_egos <span class="ot">&lt;-</span> ego_tibble<span class="sc">%&gt;%</span> </span>
+<span id="cb26-88"><a href="#cb26-88"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="st">&quot;Description&quot;</span>, <span class="st">&quot;GeneRatio&quot;</span>, <span class="st">&quot;p.adjust&quot;</span>, <span class="st">&quot;Count&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb26-89"><a href="#cb26-89"></a>    <span class="fu">filter</span>(Description <span class="sc">%in%</span> interesting_pathways) <span class="sc">%&gt;%</span> </span>
+<span id="cb26-90"><a href="#cb26-90"></a>    <span class="co"># Convert GeneRatio from fraction to decimal</span></span>
+<span id="cb26-91"><a href="#cb26-91"></a>    <span class="fu">mutate</span>(<span class="at">GeneRatio =</span> DOSE<span class="sc">::</span><span class="fu">parse_ratio</span>(GeneRatio)) <span class="sc">%&gt;%</span> </span>
+<span id="cb26-92"><a href="#cb26-92"></a>    <span class="fu">arrange</span>(GeneRatio) <span class="sc">%&gt;%</span> </span>
+<span id="cb26-93"><a href="#cb26-93"></a>    <span class="co"># Preserve sorted order</span></span>
+<span id="cb26-94"><a href="#cb26-94"></a>    <span class="fu">mutate</span>(<span class="at">Description =</span> <span class="fu">factor</span>(Description, <span class="at">levels =</span> <span class="fu">unique</span>(Description)))</span>
+<span id="cb26-95"><a href="#cb26-95"></a>  </span>
+<span id="cb26-96"><a href="#cb26-96"></a>  </span>
+<span id="cb26-97"><a href="#cb26-97"></a>  <span class="co"># Plot</span></span>
+<span id="cb26-98"><a href="#cb26-98"></a>  df_plot <span class="ot">&lt;-</span> ggplot2<span class="sc">::</span><span class="fu">ggplot</span>(interesting_egos, </span>
+<span id="cb26-99"><a href="#cb26-99"></a>                    <span class="fu">aes</span>(<span class="at">x =</span> GeneRatio, <span class="at">y =</span> Description,</span>
+<span id="cb26-100"><a href="#cb26-100"></a>                        <span class="at">color =</span> p.adjust)) <span class="sc">+</span></span>
+<span id="cb26-101"><a href="#cb26-101"></a>    <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">size =</span> Count)) <span class="sc">+</span></span>
+<span id="cb26-102"><a href="#cb26-102"></a>    <span class="fu">scale_color_gradient2</span>(<span class="at">low =</span> <span class="st">&quot;red&quot;</span>, </span>
+<span id="cb26-103"><a href="#cb26-103"></a>                          <span class="at">mid =</span> <span class="st">&quot;white&quot;</span>, </span>
+<span id="cb26-104"><a href="#cb26-104"></a>                          <span class="at">high =</span> <span class="st">&quot;white&quot;</span>,</span>
+<span id="cb26-105"><a href="#cb26-105"></a>                          <span class="at">midpoint =</span> <span class="fl">0.5</span>, </span>
+<span id="cb26-106"><a href="#cb26-106"></a>                         <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb26-107"><a href="#cb26-107"></a>    <span class="fu">scale_size_continuous</span>(<span class="at">range  =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">25</span>), </span>
+<span id="cb26-108"><a href="#cb26-108"></a>                        <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">25</span>), </span>
+<span id="cb26-109"><a href="#cb26-109"></a>                        <span class="at">breaks =</span> <span class="fu">c</span>(<span class="fu">seq</span>(<span class="dv">10</span>, <span class="dv">25</span>, <span class="dv">5</span>))) <span class="sc">+</span></span>
+<span id="cb26-110"><a href="#cb26-110"></a>    <span class="fu">labs</span>(</span>
+<span id="cb26-111"><a href="#cb26-111"></a>      <span class="at">title =</span> title,</span>
+<span id="cb26-112"><a href="#cb26-112"></a>      <span class="at">y =</span> <span class="st">&quot;&quot;</span>) <span class="sc">+</span></span>
+<span id="cb26-113"><a href="#cb26-113"></a>    <span class="fu">theme_light</span>() <span class="sc">+</span></span>
+<span id="cb26-114"><a href="#cb26-114"></a>    <span class="fu">theme</span>(<span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> font_size))</span>
+<span id="cb26-115"><a href="#cb26-115"></a>  </span>
+<span id="cb26-116"><a href="#cb26-116"></a>  <span class="fu">return</span>(df_plot)</span>
+<span id="cb26-117"><a href="#cb26-117"></a>  </span>
+<span id="cb26-118"><a href="#cb26-118"></a>}</span>
+<span id="cb26-119"><a href="#cb26-119"></a></span>
+<span id="cb26-120"><a href="#cb26-120"></a><span class="in">```</span></span>
+<span id="cb26-121"><a href="#cb26-121"></a></span>
+<span id="cb26-122"><a href="#cb26-122"></a></span>
+<span id="cb26-125"><a href="#cb26-125"></a><span class="in">```{r}</span></span>
+<span id="cb26-126"><a href="#cb26-126"></a><span class="co"># Takes a character vector of entrez gene IDs as input, runs KEGG enrichment.</span></span>
+<span id="cb26-127"><a href="#cb26-127"></a><span class="co"># Prints out a kegg dotplot and saves a readable kegg enrichment as a data frame.</span></span>
+<span id="cb26-128"><a href="#cb26-128"></a></span>
+<span id="cb26-129"><a href="#cb26-129"></a>enrich_kegg_readable <span class="ot">&lt;-</span> <span class="cf">function</span>(target_genes_entrez, </span>
+<span id="cb26-130"><a href="#cb26-130"></a>                                 <span class="co">#universe, </span></span>
+<span id="cb26-131"><a href="#cb26-131"></a>                                 <span class="at">title =</span> <span class="st">&quot;title&quot;</span>){</span>
+<span id="cb26-132"><a href="#cb26-132"></a>    </span>
+<span id="cb26-133"><a href="#cb26-133"></a>    <span class="co"># Run KEGG enrichment</span></span>
+<span id="cb26-134"><a href="#cb26-134"></a>    ekegg <span class="ot">=</span> clusterProfiler<span class="sc">::</span><span class="fu">enrichKEGG</span>(target_genes_entrez,</span>
+<span id="cb26-135"><a href="#cb26-135"></a>                                       <span class="co"># universe = as.character(universe), </span></span>
+<span id="cb26-136"><a href="#cb26-136"></a>                                       <span class="at">organism =</span> <span class="st">&quot;mmu&quot;</span>,</span>
+<span id="cb26-137"><a href="#cb26-137"></a>                                       <span class="at">keyType =</span> <span class="st">&quot;ncbi-geneid&quot;</span>)</span>
+<span id="cb26-138"><a href="#cb26-138"></a>    </span>
+<span id="cb26-139"><a href="#cb26-139"></a>    <span class="co"># Print the kegg dotplot</span></span>
+<span id="cb26-140"><a href="#cb26-140"></a>    <span class="fu">print</span>(<span class="fu">dotplot</span>(ekegg, <span class="at">title =</span> title))</span>
+<span id="cb26-141"><a href="#cb26-141"></a>    </span>
+<span id="cb26-142"><a href="#cb26-142"></a>    <span class="co"># Convert entrez to gene symbols</span></span>
+<span id="cb26-143"><a href="#cb26-143"></a>    ekegg <span class="ot">=</span> DOSE<span class="sc">::</span><span class="fu">setReadable</span>(ekegg, <span class="at">OrgDb =</span> <span class="st">&quot;org.Mm.eg.db&quot;</span>, </span>
+<span id="cb26-144"><a href="#cb26-144"></a>                              <span class="at">keyType =</span> <span class="st">&quot;ENTREZID&quot;</span>)</span>
+<span id="cb26-145"><a href="#cb26-145"></a>    </span>
+<span id="cb26-146"><a href="#cb26-146"></a>    <span class="co"># Return the result as a data frame</span></span>
+<span id="cb26-147"><a href="#cb26-147"></a>    <span class="fu">return</span>(<span class="fu">as.data.frame</span>(ekegg))</span>
+<span id="cb26-148"><a href="#cb26-148"></a>    </span>
+<span id="cb26-149"><a href="#cb26-149"></a>}</span>
+<span id="cb26-150"><a href="#cb26-150"></a><span class="in">```</span></span>
+<span id="cb26-151"><a href="#cb26-151"></a></span>
+<span id="cb26-152"><a href="#cb26-152"></a></span>
+<span id="cb26-153"><a href="#cb26-153"></a><span class="fu"># GO Enrichment analysis</span></span>
+<span id="cb26-154"><a href="#cb26-154"></a></span>
+<span id="cb26-157"><a href="#cb26-157"></a><span class="in">```{r}</span></span>
+<span id="cb26-158"><a href="#cb26-158"></a><span class="co"># Run GO enrichment analysis </span></span>
+<span id="cb26-159"><a href="#cb26-159"></a>ego <span class="ot">&lt;-</span> <span class="fu">enrichGO</span>(<span class="at">gene =</span> deaf1_annot<span class="sc">$</span>geneId, </span>
+<span id="cb26-160"><a href="#cb26-160"></a>                    <span class="at">keyType =</span> <span class="st">&quot;ENTREZID&quot;</span>, </span>
+<span id="cb26-161"><a href="#cb26-161"></a>                    <span class="at">OrgDb =</span> org.Mm.eg.db, </span>
+<span id="cb26-162"><a href="#cb26-162"></a>                    <span class="at">ont =</span> <span class="st">&quot;BP&quot;</span>, </span>
+<span id="cb26-163"><a href="#cb26-163"></a>                    <span class="at">pAdjustMethod =</span> <span class="st">&quot;BH&quot;</span>, </span>
+<span id="cb26-164"><a href="#cb26-164"></a>                    <span class="at">qvalueCutoff =</span> <span class="fl">0.05</span>, </span>
+<span id="cb26-165"><a href="#cb26-165"></a>                    <span class="at">readable =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb26-166"><a href="#cb26-166"></a><span class="in">```</span></span>
+<span id="cb26-167"><a href="#cb26-167"></a></span>
+<span id="cb26-170"><a href="#cb26-170"></a><span class="in">```{r}</span></span>
+<span id="cb26-171"><a href="#cb26-171"></a><span class="co"># Output results from GO analysis to a table</span></span>
+<span id="cb26-172"><a href="#cb26-172"></a>df_ego <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(ego)</span>
+<span id="cb26-173"><a href="#cb26-173"></a></span>
+<span id="cb26-174"><a href="#cb26-174"></a><span class="fu">dim</span>(df_ego)</span>
+<span id="cb26-175"><a href="#cb26-175"></a><span class="fu">head</span>(df_ego)</span>
+<span id="cb26-176"><a href="#cb26-176"></a><span class="in">```</span></span>
+<span id="cb26-177"><a href="#cb26-177"></a></span>
+<span id="cb26-180"><a href="#cb26-180"></a><span class="in">```{r}</span></span>
+<span id="cb26-181"><a href="#cb26-181"></a><span class="fu">write.csv</span>(df_ego, <span class="st">&quot;output/deaf1_ego_all.csv&quot;</span>)</span>
+<span id="cb26-182"><a href="#cb26-182"></a><span class="in">```</span></span>
+<span id="cb26-183"><a href="#cb26-183"></a></span>
+<span id="cb26-184"><a href="#cb26-184"></a><span class="fu">## Default GO plot</span></span>
+<span id="cb26-185"><a href="#cb26-185"></a></span>
+<span id="cb26-188"><a href="#cb26-188"></a><span class="in">```{r}</span></span>
+<span id="cb26-189"><a href="#cb26-189"></a><span class="co">#| label: go-plot</span></span>
+<span id="cb26-190"><a href="#cb26-190"></a><span class="co">#| fig-height: 10</span></span>
+<span id="cb26-191"><a href="#cb26-191"></a><span class="co">#| fig-width: 5</span></span>
+<span id="cb26-192"><a href="#cb26-192"></a></span>
+<span id="cb26-193"><a href="#cb26-193"></a></span>
+<span id="cb26-194"><a href="#cb26-194"></a><span class="co"># Dotplot visualization</span></span>
+<span id="cb26-195"><a href="#cb26-195"></a>ego_plot <span class="ot">&lt;-</span> <span class="fu">dotplot</span>(ego, <span class="at">showCategory=</span><span class="dv">10</span>,</span>
+<span id="cb26-196"><a href="#cb26-196"></a>                    <span class="at">title =</span> <span class="st">&quot;GO enrichment&quot;</span>)</span>
+<span id="cb26-197"><a href="#cb26-197"></a></span>
+<span id="cb26-198"><a href="#cb26-198"></a>ego_plot</span>
+<span id="cb26-199"><a href="#cb26-199"></a><span class="in">```</span></span>
+<span id="cb26-200"><a href="#cb26-200"></a></span>
+<span id="cb26-201"><a href="#cb26-201"></a><span class="fu">## Custom GO</span></span>
+<span id="cb26-202"><a href="#cb26-202"></a></span>
+<span id="cb26-203"><a href="#cb26-203"></a></span>
+<span id="cb26-206"><a href="#cb26-206"></a><span class="in">```{r}</span></span>
+<span id="cb26-207"><a href="#cb26-207"></a><span class="co">#| label: custom-ego</span></span>
+<span id="cb26-208"><a href="#cb26-208"></a></span>
+<span id="cb26-209"><a href="#cb26-209"></a>interesting_pathways <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;DNA-templated transcription initiation&quot;</span>, </span>
+<span id="cb26-210"><a href="#cb26-210"></a>                          <span class="st">&quot;regulation of translation&quot;</span>, </span>
+<span id="cb26-211"><a href="#cb26-211"></a>                          <span class="st">&quot;macroautophagy&quot;</span>, </span>
+<span id="cb26-212"><a href="#cb26-212"></a>                          <span class="st">&quot;stem cell population maintenance&quot;</span>)</span>
+<span id="cb26-213"><a href="#cb26-213"></a></span>
+<span id="cb26-214"><a href="#cb26-214"></a><span class="fu">custom_ego</span>(interesting_pathways, </span>
+<span id="cb26-215"><a href="#cb26-215"></a>           df_ego, </span>
+<span id="cb26-216"><a href="#cb26-216"></a>           <span class="at">title =</span> <span class="st">&quot;GO enrichments&quot;</span>)</span>
+<span id="cb26-217"><a href="#cb26-217"></a><span class="in">```</span></span>
+<span id="cb26-218"><a href="#cb26-218"></a></span>
+<span id="cb26-219"><a href="#cb26-219"></a></span>
+<span id="cb26-222"><a href="#cb26-222"></a><span class="in">```{r}</span></span>
+<span id="cb26-223"><a href="#cb26-223"></a>gobp_filt <span class="ot">&lt;-</span> df_ego <span class="sc">%&gt;%</span> </span>
+<span id="cb26-224"><a href="#cb26-224"></a>  <span class="fu">filter</span>(Description <span class="sc">%in%</span> interesting_pathways)</span>
+<span id="cb26-225"><a href="#cb26-225"></a><span class="in">```</span></span>
+<span id="cb26-226"><a href="#cb26-226"></a></span>
+<span id="cb26-227"><a href="#cb26-227"></a></span>
+<span id="cb26-228"><a href="#cb26-228"></a><span class="fu">## Log2 obs/exp</span></span>
+<span id="cb26-229"><a href="#cb26-229"></a></span>
+<span id="cb26-232"><a href="#cb26-232"></a><span class="in">```{r}</span></span>
+<span id="cb26-233"><a href="#cb26-233"></a><span class="co"># Convert fraction to decimals</span></span>
+<span id="cb26-234"><a href="#cb26-234"></a>gobp_filt<span class="sc">$</span>generatio <span class="ot">&lt;-</span> <span class="fu">sapply</span>(<span class="fu">strsplit</span>(gobp_filt<span class="sc">$</span>GeneRatio, <span class="st">&quot;/&quot;</span>), </span>
+<span id="cb26-235"><a href="#cb26-235"></a>                              <span class="cf">function</span>(x) { x <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(x); x[<span class="dv">1</span>] <span class="sc">/</span> x[<span class="dv">2</span>]})</span>
+<span id="cb26-236"><a href="#cb26-236"></a>gobp_filt<span class="sc">$</span>bgratio <span class="ot">&lt;-</span> <span class="fu">sapply</span>(<span class="fu">strsplit</span>(gobp_filt<span class="sc">$</span>BgRatio, <span class="st">&quot;/&quot;</span>), </span>
+<span id="cb26-237"><a href="#cb26-237"></a>                              <span class="cf">function</span>(x) { x <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(x); x[<span class="dv">1</span>] <span class="sc">/</span> x[<span class="dv">2</span>]})</span>
+<span id="cb26-238"><a href="#cb26-238"></a></span>
+<span id="cb26-239"><a href="#cb26-239"></a><span class="co"># Calculate </span></span>
+<span id="cb26-240"><a href="#cb26-240"></a>gobp_filt<span class="sc">$</span>log2obsexp <span class="ot">&lt;-</span> <span class="fu">log2</span>(gobp_filt<span class="sc">$</span>generatio<span class="sc">/</span>gobp_filt<span class="sc">$</span>bgratio)</span>
+<span id="cb26-241"><a href="#cb26-241"></a></span>
+<span id="cb26-242"><a href="#cb26-242"></a><span class="co"># Arrange in descending order</span></span>
+<span id="cb26-243"><a href="#cb26-243"></a>gobp_filt <span class="ot">&lt;-</span> gobp_filt <span class="sc">%&gt;%</span> </span>
+<span id="cb26-244"><a href="#cb26-244"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(gobp_filt<span class="sc">$</span>log2obsexp)) <span class="sc">%&gt;%</span> </span>
+<span id="cb26-245"><a href="#cb26-245"></a>  <span class="fu">mutate</span>(<span class="at">Description =</span> <span class="fu">factor</span>(Description,</span>
+<span id="cb26-246"><a href="#cb26-246"></a>                              <span class="at">levels =</span> <span class="fu">rev</span>(gobp_filt<span class="sc">$</span>Description)))</span>
+<span id="cb26-247"><a href="#cb26-247"></a></span>
+<span id="cb26-248"><a href="#cb26-248"></a>gobp_filt</span>
+<span id="cb26-249"><a href="#cb26-249"></a></span>
+<span id="cb26-250"><a href="#cb26-250"></a><span class="in">```</span></span>
+<span id="cb26-251"><a href="#cb26-251"></a></span>
+<span id="cb26-252"><a href="#cb26-252"></a>Plot</span>
+<span id="cb26-255"><a href="#cb26-255"></a><span class="in">```{r}</span></span>
+<span id="cb26-256"><a href="#cb26-256"></a><span class="co">#| label: log2oe_plot</span></span>
+<span id="cb26-257"><a href="#cb26-257"></a><span class="co">#| fig-height: 5</span></span>
+<span id="cb26-258"><a href="#cb26-258"></a><span class="co">#| fig-width: 7</span></span>
+<span id="cb26-259"><a href="#cb26-259"></a></span>
+<span id="cb26-260"><a href="#cb26-260"></a>log2oe_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(gobp_filt,</span>
+<span id="cb26-261"><a href="#cb26-261"></a>        <span class="fu">aes</span>(<span class="at">x =</span> log2obsexp, <span class="at">y =</span> Description)) <span class="sc">+</span></span>
+<span id="cb26-262"><a href="#cb26-262"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">size =</span> Count, <span class="at">color =</span> p.adjust)) <span class="sc">+</span></span>
+<span id="cb26-263"><a href="#cb26-263"></a>  <span class="fu">labs</span>(<span class="at">x =</span> (<span class="fu">expression</span>(<span class="st">&quot;log&quot;</span>[<span class="dv">2</span>]<span class="sc">*</span><span class="st">&quot;(obs/exp)&quot;</span>)), </span>
+<span id="cb26-264"><a href="#cb26-264"></a>       <span class="at">y =</span> <span class="st">&quot;&quot;</span>) <span class="sc">+</span></span>
+<span id="cb26-265"><a href="#cb26-265"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">3</span>)) <span class="sc">+</span></span>
+<span id="cb26-266"><a href="#cb26-266"></a>  <span class="co"># Customize sizes and colors</span></span>
+<span id="cb26-267"><a href="#cb26-267"></a>  <span class="fu">scale_size</span>(</span>
+<span id="cb26-268"><a href="#cb26-268"></a>    <span class="at">name =</span> <span class="st">&quot;Number of genes&quot;</span>,</span>
+<span id="cb26-269"><a href="#cb26-269"></a>    <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">25</span>), </span>
+<span id="cb26-270"><a href="#cb26-270"></a>    <span class="at">breaks =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">15</span>, <span class="dv">20</span>, <span class="dv">25</span>)) <span class="sc">+</span></span>
+<span id="cb26-271"><a href="#cb26-271"></a>  <span class="fu">scale_color_gradient2</span>(</span>
+<span id="cb26-272"><a href="#cb26-272"></a>    <span class="at">name =</span> <span class="st">&quot;Adjusted P-value&quot;</span>,</span>
+<span id="cb26-273"><a href="#cb26-273"></a>    <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>), <span class="at">breaks =</span> <span class="fu">c</span>(<span class="fl">0.00</span>, <span class="fl">0.50</span>, <span class="fl">1.00</span>), </span>
+<span id="cb26-274"><a href="#cb26-274"></a>    <span class="at">low =</span> <span class="st">&quot;firebrick3&quot;</span>, <span class="at">mid =</span> <span class="st">&quot;white&quot;</span>, <span class="at">high =</span> <span class="st">&quot;white&quot;</span>, </span>
+<span id="cb26-275"><a href="#cb26-275"></a>    <span class="at">midpoint =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb26-276"><a href="#cb26-276"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
+<span id="cb26-277"><a href="#cb26-277"></a>  <span class="co"># Adjust legend positions</span></span>
+<span id="cb26-278"><a href="#cb26-278"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">&quot;bottom&quot;</span>) <span class="sc">+</span></span>
+<span id="cb26-279"><a href="#cb26-279"></a>  <span class="fu">guides</span>(<span class="at">colour =</span> <span class="fu">guide_colourbar</span>(<span class="at">title.position =</span> <span class="st">&quot;top&quot;</span>, <span class="at">title.hjust =</span> <span class="fl">0.5</span>),</span>
+<span id="cb26-280"><a href="#cb26-280"></a>         <span class="at">size =</span> <span class="fu">guide_legend</span>(<span class="at">title.position =</span> <span class="st">&quot;top&quot;</span>, <span class="at">title.hjust =</span> <span class="fl">0.5</span>))</span>
+<span id="cb26-281"><a href="#cb26-281"></a></span>
+<span id="cb26-282"><a href="#cb26-282"></a></span>
+<span id="cb26-283"><a href="#cb26-283"></a>log2oe_plot</span>
+<span id="cb26-284"><a href="#cb26-284"></a><span class="in">```</span></span>
+<span id="cb26-285"><a href="#cb26-285"></a></span>
+<span id="cb26-286"><a href="#cb26-286"></a></span>
+<span id="cb26-287"><a href="#cb26-287"></a></span>
+<span id="cb26-288"><a href="#cb26-288"></a><span class="fu"># KEGG enrichment</span></span>
+<span id="cb26-289"><a href="#cb26-289"></a></span>
+<span id="cb26-290"><a href="#cb26-290"></a></span>
+<span id="cb26-293"><a href="#cb26-293"></a><span class="in">```{r}</span></span>
+<span id="cb26-294"><a href="#cb26-294"></a><span class="co">#| label: kegg</span></span>
+<span id="cb26-295"><a href="#cb26-295"></a><span class="co">#| fig-height: 5</span></span>
+<span id="cb26-296"><a href="#cb26-296"></a></span>
+<span id="cb26-297"><a href="#cb26-297"></a>ekegg <span class="ot">&lt;-</span> <span class="fu">enrich_kegg_readable</span>(deaf1_annot<span class="sc">$</span>geneId, <span class="at">title =</span> <span class="st">&quot;KEGG enrichment&quot;</span>)</span>
+<span id="cb26-298"><a href="#cb26-298"></a><span class="in">```</span></span>
+<span id="cb26-299"><a href="#cb26-299"></a></span>
+<span id="cb26-302"><a href="#cb26-302"></a><span class="in">```{r}</span></span>
+<span id="cb26-303"><a href="#cb26-303"></a><span class="fu">dim</span>(ekegg)</span>
+<span id="cb26-304"><a href="#cb26-304"></a><span class="in">```</span></span>
+<span id="cb26-305"><a href="#cb26-305"></a></span>
+<span id="cb26-308"><a href="#cb26-308"></a><span class="in">```{r}</span></span>
+<span id="cb26-309"><a href="#cb26-309"></a>ekegg</span>
+<span id="cb26-310"><a href="#cb26-310"></a><span class="in">```</span></span>
+<span id="cb26-311"><a href="#cb26-311"></a></span>
+<span id="cb26-314"><a href="#cb26-314"></a><span class="in">```{r}</span></span>
+<span id="cb26-315"><a href="#cb26-315"></a><span class="fu">write.csv</span>(ekegg, <span class="at">file =</span> <span class="fu">paste0</span>(output_dir, <span class="st">&quot;deaf1_kegg_all.csv&quot;</span>))</span>
+<span id="cb26-316"><a href="#cb26-316"></a><span class="in">```</span></span>
+<span id="cb26-317"><a href="#cb26-317"></a></span>
+<span id="cb26-318"><a href="#cb26-318"></a></span>
+<span id="cb26-321"><a href="#cb26-321"></a><span class="in">```{r}</span></span>
+<span id="cb26-322"><a href="#cb26-322"></a><span class="fu">sessionInfo</span>()</span>
+<span id="cb26-323"><a href="#cb26-323"></a><span class="in">```</span></span>
 </code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

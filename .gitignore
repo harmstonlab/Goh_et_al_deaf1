@@ -15,7 +15,7 @@
 *.fq.gz
 *.bam
 *.bai
-
+*.gtf
 
 # Specific folders
 sandbox/*
@@ -23,7 +23,10 @@ sandbox/*
 */*/data/02_aligned/01_STAR/*
 */*/data/02_aligned/02_RSEM/*
 !*/*/data/02_aligned/02_RSEM/*.genes.results
+docs/
 
 expression/compile_figure/compile_figure_files/*
 
 .Rproj.user
+
+
