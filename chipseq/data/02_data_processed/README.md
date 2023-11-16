@@ -2,10 +2,9 @@
 
 Aligned and processed peaks for Deaf1 ChIP-seq.
 
-All code is in the README file of the accompanying folder.
+Analysis code: [analysis.md](analysis.md)
 
 ## Table of Contents
-
 
 ### 00_fastqc ###
 
@@ -33,11 +32,4 @@ present after filtering.
 
 - **021_idr**: Contains merged high quality peaks using `IDR`
 - **022_meme**: Code and results for MEME motif enrichment. 
-
-
-## Dependencies
-
-Reads in data from: [data/01_data_raw](../01_data_raw/). 
-
-Used as input to: [notebooks/01_QC_GO/01_QC_GO.md](../../notebooks/01_QC_GO/)
 

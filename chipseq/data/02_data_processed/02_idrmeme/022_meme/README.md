@@ -8,8 +8,6 @@ Peaks were extracted from `deaf1_idr_filt.bed` using the `meme_prep.Rmd` file, a
 ## Result
 - 1 motif was found in all 608/608 IDR peaks; this is consistent throughout minsites 150 and above. 
 
-
-
 ## Code: 
 
 Flags explaination: 

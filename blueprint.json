@@ -1,0 +1,25 @@
+{
+    "title": "deaf1_paper", 
+    "description": "All scripts and code necessary to recreate analyses from Goh et al 2023",
+    "line": "vintage",
+    "badges":   [
+        {
+            "alt": "R 4.2.2",
+            "img": "https://img.shields.io/badge/R-4.2.2-blue"
+        },
+        {
+            "alt": "Quarto v1.3.340",
+            "img": "https://img.shields.io/badge/Quarto-1.3.340-orange"
+        },
+        {
+            "alt": "Status:in-progress",
+            "img": "https://img.shields.io/badge/status-complete-green"
+        }
+    ],
+    "bullets": [
+		"**ChIP-seq:** Deaf1 in C2C12 myoblasts",
+		"**Expression:** RNA-seq data from 4 GEO datasets"
+	]
+}
+
+

@@ -1,43 +1,11 @@
-<!-- ⚠️ This README has been generated from the file(s) "blueprint.md" ⚠️--><h1 align="center">deaf1_paper</h1>
-<p align="center">
-  <b>All scripts and code necessary to recreate figures from Goh et al 2023</b></br>
-  <sub><sub>
-</p>
-
-<br />
-
-<p align="center">
-		<a href="undefined"><img alt="R 4.2.2" src="https://img.shields.io/badge/R-4.2.2-blue" height="20"/></a>
-<a href="undefined"><img alt="Quarto v1.3.340" src="https://img.shields.io/badge/Quarto-1.3.340-orange" height="20"/></a>
-<a href="undefined"><img alt="Status:in-progress" src="https://img.shields.io/badge/status-complete-green" height="20"/></a>
-	</p>
-
-* **ChIP-seq:** Deaf1 in C2C12 myoblasts
-* **Expression:** RNA-seq data from 4 GEO datasets
-
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/vintage.png)](#table-of-contents)
-
-## ➤ Table of Contents
-
-* [➤ ChIP-seq](#-chip-seq)
-	* [Important files](#important-files)
-	* [Code files](#code-files)
-	* [Brief description of pipeline](#brief-description-of-pipeline)
-	* [Peak stats](#peak-stats)
-	* [SHA checksums](#sha-checksums)
-	* [Version info ](#version-info-)
-* [➤ Expression (RNA-seq)](#-expression-rna-seq)
-	* [Data](#data)
-	* [Checksums](#checksums)
-	* [Version info](#version-info)
-* [➤ Analysis](#-analysis)
-* [➤ Acknowledgements](#-acknowledgements)
+{{ template:title }}
+{{ template:description}}
+{{ template:badges }}
+{{ bullets }}
+{{ template:toc }}
 
 
-
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/vintage.png)](#chip-seq)
-
-## ➤ ChIP-seq
+## ChIP-seq
 
 Code for ChIP-seq figure. Contains analysis of Deaf-1 ChIP-seq data for C2C12 mouse myoblasts.
 
@@ -88,10 +56,7 @@ Using `macs2` q = 0.1:
 - macs2: **2.1.2**
 - ChIPQC: **1.32.2**
 
-
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/vintage.png)](#expression-rna-seq)
-
-## ➤ Expression (RNA-seq)
+## Expression (RNA-seq)
 
 Code for Supplementary Figure 1. Contains RNA-seq data from GEO. 
 
@@ -119,19 +84,13 @@ Mus_musculus.GRCm38.94.chr.gtf.gz  | 9aa004b6c98fc1aec6973af98e22b822
 - RSEM: **v1.3.1**
 - MultiQC: **version 1.14 (931327d)**
 
-
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/vintage.png)](#analysis)
-
-## ➤ Analysis
+## Analysis
 
 **! Ensure that the annotation files are in the [expression/annotation](expression/annotation/) folder before running the analysis.**
 
 If running from scratch, these scripts can be found as `.qmd` files in the [expression](expression) folder. If the repository is cloned as is, and the .Rproj file is used, there should have no issues running the scripts.
 
-
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/vintage.png)](#acknowledgements)
-
-## ➤ Acknowledgements
+## Acknowledgements
 
 This table of contents was built with https://github.com/andreasbm/readme
 
